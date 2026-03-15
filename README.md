@@ -18,33 +18,3 @@ Upload product data (CSV, Shopify sync, or manual entry) → 4 specialized AI ag
 | Backend | Express, TypeScript, MongoDB, Redis, BullMQ |
 | AI Agents | Python, FastAPI, LangGraph, LangChain, GPT-4o |
 | Infra | Docker Compose, GitHub Actions |
-
-## Getting Started
-
-```bash
-# Clone the repo
-git clone <repo-url> && cd shopdesc.ai
-
-# Copy env file
-cp .env.example .env
-
-# Start all services
-docker compose up
-```
-
-| Service | URL |
-|---------|-----|
-| Client | http://localhost:5173 |
-| Server | http://localhost:5000 |
-| Agents | http://localhost:8000 |
-
-## Project Structure
-
-```
-shopdesc.ai/
-├── client/    → React SPA (Vite)
-├── server/    → Express API (Node.js)
-├── agents/    → Python AI Agent Service (FastAPI)
-```
-
-See [ROADMAP.md](ROADMAP.md) for the build plan.
