@@ -1,0 +1,26 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.routers import health, generate
+
+app = FastAPI(
+    title="ProductWriter AI Agents",
+    version="0.1.0",
+    description="Multi-agent AI service for e-commerce product content generation",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(health.router)
+app.include_router(generate.router, prefix="/generate", tags=["generate"])
+
+
+@app.get("/")
+async def root():
+    return {"service": "ProductWriter AI Agents", "version": "0.1.0"}

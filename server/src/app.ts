@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import { rateLimit } from "express-rate-limit";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import authRoutes from "./routes/auth.routes.js";
 
 export const app = express();
 
@@ -36,8 +37,8 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Routes (mounted as they are built)
-// app.use("/api/auth", authRoutes);
+// Routes
+app.use("/api/auth", authRoutes);
 // app.use("/api/products", productRoutes);
 // app.use("/api/generate", generationRoutes);
 // app.use("/api/billing", billingRoutes);

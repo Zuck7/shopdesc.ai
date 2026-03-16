@@ -1,0 +1,12 @@
+fastapi==0.115.6
+uvicorn==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+langchain==0.3.14
+langgraph==0.4.1
+langchain-openai==0.3.5
+langchain-anthropic==0.3.6
+openai==1.59.0
+anthropic==0.42.0
+httpx==0.28.1
+python-dotenv==1.0.1
