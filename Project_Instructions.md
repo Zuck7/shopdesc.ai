@@ -494,7 +494,7 @@ productwriter-ai/
 │       ├── ci.yml                       # Lint + test + type-check on PR
 │       └── deploy.yml                   # Deploy client + server + agents
 ├── docker-compose.yml                   # Local dev: mongo, redis, all services
-├── .env.example                         # Template for environment variables
+├── .env                                 # Local environment variables
 │
 ├── client/                              # React SPA (Vite)
 │   ├── index.html
@@ -932,7 +932,7 @@ Admin (internal):
 ## 8. ENVIRONMENT VARIABLES
 
 ```env
-# .env.example
+# .env
 
 # ── MongoDB ──
 MONGODB_URI="mongodb://localhost:27017/productwriter"
