@@ -4,17 +4,17 @@
 **Goal: Monorepo scaffold, auth system, database, Docker running**
 - [x] Initialize client: `npm create vite@latest client -- --template react-ts`
 - [x] Initialize server: Express + TypeScript boilerplate
-- [ ] Initialize agents: FastAPI project structure
-- [ ] Set up Docker Compose (mongo, redis, server, client, agents)
-- [ ] Set up TailwindCSS + ShadCN/UI in client
-- [ ] Configure Mongoose connection + models (User, Product, Generation, BulkJob)
-- [ ] Implement auth: register, login, JWT access/refresh tokens
-- [ ] Implement Passport.js local strategy + Google OAuth
-- [ ] Build auth pages in React: Login, Register, Forgot Password
-- [ ] Build dashboard layout: Sidebar, Header, routing with React Router
-- [ ] Set up Axios instance with auth interceptors
-- [ ] Set up GitHub Actions CI (lint, type-check, build for client + server)
-- [ ] Seed script: insert 50 sample products into MongoDB
+- [x] Initialize agents: FastAPI project structure
+- [x] Set up Docker Compose (mongo, redis, server, client, agents)
+- [x] Set up TailwindCSS + ShadCN/UI in client
+- [x] Configure Mongoose connection + models (User, Product, Generation, BulkJob)
+- [x] Implement auth: register, login, JWT access/refresh tokens
+- [x] Implement Passport.js local strategy + Google OAuth
+- [x] Build auth pages in React: Login, Register, Forgot Password
+- [x] Build dashboard layout: Sidebar, Header, routing with React Router
+- [x] Set up Axios instance with auth interceptors
+- [x] Set up GitHub Actions CI (lint, type-check, build for client + server)
+- [x] Seed script: insert 50 sample products into MongoDB
 
 ## Phase 2: Product Data Pipeline (Week 2) — March 17–23
 **Goal: Full product CRUD, CSV import, Shopify sync**
