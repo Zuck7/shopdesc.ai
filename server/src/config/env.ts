@@ -29,6 +29,12 @@ const envSchema = z.object({
 
   // Email (optional)
   RESEND_API_KEY: z.string().optional(),
+
+  // Shopify OAuth (optional)
+  SHOPIFY_API_KEY: z.string().optional(),
+  SHOPIFY_API_SECRET: z.string().optional(),
+  SHOPIFY_SCOPES: z.string().default("read_products,write_products"),
+  SHOPIFY_CALLBACK_URL: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

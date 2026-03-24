@@ -1,0 +1,6 @@
+{
+  "watch": ["src", "index.html", "vite.config.ts"],
+  "ext": "ts,tsx,css,html",
+  "ignore": ["node_modules", "dist"],
+  "exec": "vite --host 0.0.0.0 --port 5173 --strictPort"
+}

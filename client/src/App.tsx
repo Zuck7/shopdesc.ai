@@ -9,6 +9,10 @@ import { RegisterPage } from "@/pages/auth/RegisterPage";
 import { ForgotPasswordPage } from "@/pages/auth/ForgotPasswordPage";
 import { AuthCallbackPage } from "@/pages/auth/AuthCallbackPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
+import { ProductsListPage } from "@/pages/products/ProductsListPage";
+import { NewProductPage } from "@/pages/products/NewProductPage";
+import { ProductDetailPage } from "@/pages/products/ProductDetailPage";
+import { ImportProductsPage } from "@/pages/products/ImportProductsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,7 +39,10 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/products" element={<DashboardPage />} />
+              <Route path="/products" element={<ProductsListPage />} />
+              <Route path="/products/new" element={<NewProductPage />} />
+              <Route path="/products/import" element={<ImportProductsPage />} />
+              <Route path="/products/:id" element={<ProductDetailPage />} />
               <Route path="/generate" element={<DashboardPage />} />
               <Route path="/results" element={<DashboardPage />} />
               <Route path="/settings" element={<DashboardPage />} />

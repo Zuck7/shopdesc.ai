@@ -5,6 +5,7 @@ interface User {
   name: string;
   email: string;
   plan: string;
+  shopifyDomain?: string;
 }
 
 interface AuthState {

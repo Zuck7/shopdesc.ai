@@ -9,6 +9,8 @@ import {
   logout,
   getMe,
 } from "../controllers/auth.controller.js";
+import { preauth, handleCallback } from "../controllers/shopify.controller.js";
+import { authMiddleware } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import {
   registerSchema,
@@ -56,5 +58,16 @@ router.get(
     res.redirect(`${env.CLIENT_URL}/auth/callback?token=${accessToken}`);
   }
 );
+
+// Shopify OAuth
+// POST /api/auth/shopify/preauth — authenticated; returns the Shopify authorization URL
+router.post(
+  "/shopify/preauth",
+  authMiddleware as unknown as import("express").RequestHandler,
+  preauth as unknown as import("express").RequestHandler
+);
+
+// GET /api/auth/shopify/callback — called by Shopify after the merchant grants access
+router.get("/shopify/callback", handleCallback as unknown as import("express").RequestHandler);
 
 export default router;
