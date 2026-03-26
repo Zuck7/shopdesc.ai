@@ -7,6 +7,7 @@ import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import authRoutes from "./routes/auth.routes.js";
 import productRoutes from "./routes/product.routes.js";
+import generationRoutes from "./routes/generation.routes.js";
 
 export const app = express();
 
@@ -41,7 +42,8 @@ app.get("/api/health", (_req, res) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
-// app.use("/api/generate", generationRoutes);
+app.use("/api/generate", generationRoutes);
+app.use("/api/generations", generationRoutes);
 // app.use("/api/billing", billingRoutes);
 // app.use("/api/user", userRoutes);
 

@@ -95,6 +95,92 @@ class ContentVariant(BaseModel):
     word_count: int
 
 
+class CopywritingOutput(BaseModel):
+    """Structured output from copywriting agent — 3 variants"""
+
+    variants: list[ContentVariant] = Field(min_length=3, max_length=3)
+
+
+# ── Agent 4: Competitor ──
+
+
+class CompetitorListing(BaseModel):
+    title: str
+    url: str | None = None
+    platform: str
+    strengths: list[str]
+    weaknesses: list[str]
+
+
+class CompetitorAnalysis(BaseModel):
+    """Structured output from Competitor Agent"""
+
+    top_competitors: list[CompetitorListing]
+    common_keywords: list[str]
+    content_gaps: list[str]
+    differentiation_suggestions: list[str]
+    average_title_length: int
+    average_description_length: int
+
+
+# ── Generation State (LangGraph) ──
+
+
+class GenerationState(BaseModel):
+    """Shared state flowing through the LangGraph pipeline"""
+
+    product: ProductInput
+    platform: Platform = Platform.GENERIC
+    tone: Tone = Tone.PROFESSIONAL
+    custom_tone_instructions: str | None = None
+    include_competitor_analysis: bool = False
+
+    # Filled by agents
+    product_brief: ProductBrief | None = None
+    seo_strategy: SEOStrategy | None = None
+    competitor_analysis: CompetitorAnalysis | None = None
+    variants: list[ContentVariant] = Field(default_factory=list)
+
+    # Metadata
+    total_tokens_used: int = 0
+    processing_time_ms: int = 0
+    errors: list[str] = Field(default_factory=list)
+
+
+# ── API Request / Response ──
+
+
+class SingleGenerateRequest(BaseModel):
+    product: ProductInput
+    platform: Platform = Platform.GENERIC
+    tone: Tone = Tone.PROFESSIONAL
+    custom_tone_instructions: str | None = None
+    include_competitor_analysis: bool = False
+
+
+class GenerationOutput(BaseModel):
+    """Final combined output from the pipeline"""
+
+    product_brief: ProductBrief
+    seo_strategy: SEOStrategy
+    variants: list[ContentVariant] = Field(min_length=3, max_length=3)
+    competitor_analysis: CompetitorAnalysis | None = None
+    total_tokens_used: int
+    processing_time_ms: int
+
+
+class HealthResponse(BaseModel):
+    status: str = "healthy"
+    agents: list[str] = [
+        "product_analysis",
+        "seo",
+        "copywriting",
+        "competitor",
+    ]
+    version: str
+    word_count: int
+
+
 class GenerationOutput(BaseModel):
     """Final combined output from the pipeline"""
 

@@ -10,5 +10,15 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
     LOG_LEVEL: str = "info"
 
+    # LLM defaults
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    OPENAI_MODEL_PREMIUM: str = "gpt-4o"
+    ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
+    LLM_TEMPERATURE: float = 0.7
+    LLM_MAX_RETRIES: int = 2
+
+    # Agent service API key (for internal auth from Express)
+    AGENT_API_KEY: str = ""
+
 
 settings = Settings()

@@ -13,6 +13,8 @@ import { ProductsListPage } from "@/pages/products/ProductsListPage";
 import { NewProductPage } from "@/pages/products/NewProductPage";
 import { ProductDetailPage } from "@/pages/products/ProductDetailPage";
 import { ImportProductsPage } from "@/pages/products/ImportProductsPage";
+import { GeneratePage } from "@/pages/generate/GeneratePage";
+import { GenerationDetailPage } from "@/pages/results/GenerationDetailPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,8 +45,8 @@ function App() {
               <Route path="/products/new" element={<NewProductPage />} />
               <Route path="/products/import" element={<ImportProductsPage />} />
               <Route path="/products/:id" element={<ProductDetailPage />} />
-              <Route path="/generate" element={<DashboardPage />} />
-              <Route path="/results" element={<DashboardPage />} />
+              <Route path="/generate" element={<GeneratePage />} />
+              <Route path="/results/:id" element={<GenerationDetailPage />} />
               <Route path="/settings" element={<DashboardPage />} />
             </Route>
           </Route>
