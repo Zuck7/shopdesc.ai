@@ -2,11 +2,19 @@ import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
 import Product from "../models/Product.js";
 import Generation from "../models/Generation.js";
+import BulkJob from "../models/BulkJob.js";
 import { logger } from "../utils/logger.js";
 import {
   callGenerateSingle,
   type SingleGeneratePayload,
 } from "../services/agentClient.js";
+import { generationQueue } from "../config/queue.js";
+import type { BulkJobData } from "../workers/generation.worker.js";
+import {
+  buildCacheKey,
+  getCachedGeneration,
+  setCachedGeneration,
+} from "../services/cache.service.js";
 
 // POST /api/generate/single/:productId
 export const generateSingle = async (req: AuthRequest, res: Response) => {
@@ -27,6 +35,23 @@ export const generateSingle = async (req: AuthRequest, res: Response) => {
       custom_tone_instructions,
       include_competitor_analysis = false,
     } = req.body;
+
+    // Check cache
+    const cacheKey = buildCacheKey(
+      productId as string,
+      platform,
+      tone,
+      include_competitor_analysis
+    );
+    const cachedId = await getCachedGeneration(cacheKey);
+    if (cachedId) {
+      const cached = await Generation.findById(cachedId).lean();
+      if (cached) {
+        logger.info(`Cache hit for product ${productId}`);
+        res.json(cached);
+        return;
+      }
+    }
 
     // Build agent payload
     const payload: SingleGeneratePayload = {
@@ -84,6 +109,9 @@ export const generateSingle = async (req: AuthRequest, res: Response) => {
       `Generation saved: ${generation._id} for product ${productId} — ${result.total_tokens_used} tokens`
     );
 
+    // Cache the generation
+    await setCachedGeneration(cacheKey, String(generation._id));
+
     res.status(201).json(generation);
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : "Unknown error";
@@ -131,3 +159,204 @@ export const getGenerationDetail = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+// POST /api/generate/bulk — create a bulk generation job
+export const generateBulk = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!._id;
+    const {
+      productIds,
+      platform = "generic",
+      tone = "professional",
+      custom_tone_instructions,
+      include_competitor_analysis = false,
+    } = req.body;
+
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      res.status(400).json({ message: "productIds array is required" });
+      return;
+    }
+
+    if (productIds.length > 500) {
+      res.status(400).json({ message: "Maximum 500 products per bulk job" });
+      return;
+    }
+
+    // Verify all products belong to user
+    const count = await Product.countDocuments({
+      _id: { $in: productIds },
+      userId,
+    });
+    if (count !== productIds.length) {
+      res
+        .status(400)
+        .json({ message: "Some product IDs are invalid or not owned by you" });
+      return;
+    }
+
+    // Create BulkJob
+    const bulkJob = await BulkJob.create({
+      userId,
+      platform,
+      tone,
+      includeCompetitor: include_competitor_analysis,
+      productIds,
+      totalProducts: productIds.length,
+    });
+
+    // Add to BullMQ queue
+    const jobData: BulkJobData = {
+      bulkJobId: String(bulkJob._id),
+      userId: String(userId),
+      productIds,
+      platform,
+      tone,
+      customToneInstructions: custom_tone_instructions,
+      includeCompetitor: include_competitor_analysis,
+    };
+
+    await generationQueue.add(`bulk-${bulkJob._id}`, jobData);
+
+    logger.info(
+      `Bulk job ${bulkJob._id} queued: ${productIds.length} products`
+    );
+
+    res.status(201).json(bulkJob);
+  } catch (error) {
+    logger.error("generateBulk error:", error);
+    res.status(500).json({ message: "Failed to create bulk job" });
+  }
+};
+
+// GET /api/generate/jobs/:jobId — get bulk job status / progress
+export const getJobStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!._id;
+    const job = await BulkJob.findOne({
+      _id: req.params.jobId,
+      userId,
+    }).lean();
+
+    if (!job) {
+      res.status(404).json({ message: "Job not found" });
+      return;
+    }
+
+    res.json(job);
+  } catch (error) {
+    logger.error("getJobStatus error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// GET /api/generate/jobs — list user's bulk jobs
+export const listJobs = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!._id;
+    const jobs = await BulkJob.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    res.json(jobs);
+  } catch (error) {
+    logger.error("listJobs error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// POST /api/generations/export — export generations as CSV or JSON
+export const exportGenerations = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!._id;
+    const { generationIds, format = "csv" } = req.body;
+
+    if (!Array.isArray(generationIds) || generationIds.length === 0) {
+      res.status(400).json({ message: "generationIds array is required" });
+      return;
+    }
+
+    const generations = await Generation.find({
+      _id: { $in: generationIds },
+      userId,
+    })
+      .populate("productId", "name category brand")
+      .lean();
+
+    if (format === "json") {
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=generations.json"
+      );
+      res.json(generations);
+      return;
+    }
+
+    // CSV format
+    const rows: string[] = [];
+    rows.push(
+      [
+        "Product Name",
+        "Platform",
+        "Tone",
+        "Variant",
+        "Title",
+        "Description",
+        "Meta Title",
+        "Meta Description",
+        "Keywords",
+        "Bullet Points",
+        "SEO Score",
+        "Readability Score",
+        "Word Count",
+      ].join(",")
+    );
+
+    for (const gen of generations) {
+      const productName =
+        typeof gen.productId === "object" &&
+        gen.productId !== null &&
+        "name" in gen.productId
+          ? (gen.productId as { name: string }).name
+          : String(gen.productId);
+
+      for (const v of gen.variants) {
+        rows.push(
+          [
+            csvEscape(productName),
+            gen.platform,
+            gen.tone,
+            v.variantLabel,
+            csvEscape(v.title),
+            csvEscape(v.description),
+            csvEscape(v.metaTitle ?? ""),
+            csvEscape(v.metaDescription ?? ""),
+            csvEscape(v.keywords.join("; ")),
+            csvEscape(v.bulletPoints.join("; ")),
+            v.seoScore ?? "",
+            v.readabilityScore ?? "",
+            v.wordCount,
+          ].join(",")
+        );
+      }
+    }
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=generations.csv"
+    );
+    res.send(rows.join("\n"));
+  } catch (error) {
+    logger.error("exportGenerations error:", error);
+    res.status(500).json({ message: "Export failed" });
+  }
+};
+
+function csvEscape(value: string): string {
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}

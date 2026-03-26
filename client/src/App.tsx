@@ -14,6 +14,8 @@ import { NewProductPage } from "@/pages/products/NewProductPage";
 import { ProductDetailPage } from "@/pages/products/ProductDetailPage";
 import { ImportProductsPage } from "@/pages/products/ImportProductsPage";
 import { GeneratePage } from "@/pages/generate/GeneratePage";
+import { BulkGeneratePage } from "@/pages/generate/BulkGeneratePage";
+import { JobProgressPage } from "@/pages/generate/JobProgressPage";
 import { GenerationDetailPage } from "@/pages/results/GenerationDetailPage";
 
 const queryClient = new QueryClient({
@@ -46,6 +48,8 @@ function App() {
               <Route path="/products/import" element={<ImportProductsPage />} />
               <Route path="/products/:id" element={<ProductDetailPage />} />
               <Route path="/generate" element={<GeneratePage />} />
+              <Route path="/generate/bulk" element={<BulkGeneratePage />} />
+              <Route path="/generate/jobs/:jobId" element={<JobProgressPage />} />
               <Route path="/results/:id" element={<GenerationDetailPage />} />
               <Route path="/settings" element={<DashboardPage />} />
             </Route>

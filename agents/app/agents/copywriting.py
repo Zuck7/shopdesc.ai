@@ -15,6 +15,7 @@ from app.models.prompts import (
 )
 from app.services.llm import get_llm, invoke_structured
 from app.services.scoring import calculate_seo_score, calculate_readability_score
+from app.services.formatting import apply_platform_format
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,16 @@ async def run_copywriting_agent(state: GenerationState) -> GenerationState:
     # Re-calculate scores with our own scoring functions for consistency
     secondary_terms = [k.term for k in seo.secondary_keywords]
     for variant in output.variants:
+        # Apply platform-specific formatting / enforcement
+        vdict = variant.model_dump()
+        vdict = apply_platform_format(state.platform.value, vdict)
+        variant.title = vdict["title"]
+        variant.description = vdict["description"]
+        variant.meta_title = vdict["meta_title"]
+        variant.meta_description = vdict["meta_description"]
+        variant.keywords = vdict.get("keywords", variant.keywords)
+        variant.bullet_points = vdict.get("bullet_points", variant.bullet_points)
+
         variant.seo_score = calculate_seo_score(
             text=variant.description,
             title=variant.title,

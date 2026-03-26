@@ -3,9 +3,13 @@ import { env } from "./config/env.js";
 import { connectDB } from "./config/db.js";
 import { app } from "./app.js";
 import { logger } from "./utils/logger.js";
+import { startGenerationWorker } from "./workers/generation.worker.js";
 
 const start = async () => {
   await connectDB();
+
+  // Start BullMQ worker for bulk generation
+  startGenerationWorker();
 
   app.listen(env.PORT, () => {
     logger.info(

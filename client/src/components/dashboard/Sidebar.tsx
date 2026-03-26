@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Package,
   Sparkles,
+  Layers,
   FileText,
   Settings,
   LogOut,
@@ -16,6 +17,7 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/products", icon: Package },
   { label: "Generate", href: "/generate", icon: Sparkles },
+  { label: "Bulk Generate", href: "/generate/bulk", icon: Layers },
   { label: "Results", href: "/results", icon: FileText },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

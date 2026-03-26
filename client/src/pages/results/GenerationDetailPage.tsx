@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VariantCard } from "@/components/generations/VariantCard";
 import { SeoScoreBadge } from "@/components/generations/SeoScoreBadge";
-import { useGenerationDetail } from "@/hooks/useGenerations";
+import { useGenerationDetail, useExportGenerations } from "@/hooks/useGenerations";
+import { toast } from "sonner";
 
 export function GenerationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: gen, isLoading, isError } = useGenerationDetail(id!);
+  const exportMutation = useExportGenerations();
 
   if (isLoading) {
     return (
@@ -60,6 +62,36 @@ export function GenerationDetailPage() {
         <h1 className="text-2xl font-bold tracking-tight">
           Generation for {productName}
         </h1>
+      </div>
+
+      {/* Export buttons */}
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={exportMutation.isPending}
+          onClick={() => {
+            exportMutation.mutate(
+              { generationIds: [gen._id], format: "csv" },
+              { onError: () => toast.error("Export failed") }
+            );
+          }}
+        >
+          Export CSV
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={exportMutation.isPending}
+          onClick={() => {
+            exportMutation.mutate(
+              { generationIds: [gen._id], format: "json" },
+              { onError: () => toast.error("Export failed") }
+            );
+          }}
+        >
+          Export JSON
+        </Button>
       </div>
 
       {/* Summary Card */}
