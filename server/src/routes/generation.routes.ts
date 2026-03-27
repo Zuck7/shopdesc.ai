@@ -1,5 +1,6 @@
 import { Router, type RequestHandler } from "express";
 import { authMiddleware } from "../middleware/auth.js";
+import { planLimiter } from "../middleware/planLimiter.js";
 import {
   generationRateLimiter,
   bulkRateLimiter,
@@ -23,6 +24,7 @@ router.use(authMiddleware as unknown as RequestHandler);
 router.post(
   "/single/:productId",
   generationRateLimiter as unknown as RequestHandler,
+  planLimiter as unknown as RequestHandler,
   generateSingle as unknown as RequestHandler
 );
 
@@ -30,6 +32,7 @@ router.post(
 router.post(
   "/bulk",
   bulkRateLimiter as unknown as RequestHandler,
+  planLimiter as unknown as RequestHandler,
   generateBulk as unknown as RequestHandler
 );
 

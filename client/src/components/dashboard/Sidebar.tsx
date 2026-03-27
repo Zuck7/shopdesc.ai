@@ -5,6 +5,9 @@ import {
   Sparkles,
   Layers,
   FileText,
+  BarChart3,
+  CreditCard,
+  Mic,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -19,7 +22,12 @@ const navItems = [
   { label: "Generate", href: "/generate", icon: Sparkles },
   { label: "Bulk Generate", href: "/generate/bulk", icon: Layers },
   { label: "Results", href: "/results", icon: FileText },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Analytics", href: "/analytics", icon: BarChart3 },
+];
+
+const settingsItems = [
+  { label: "Billing", href: "/settings/billing", icon: CreditCard },
+  { label: "Brand Voice", href: "/settings/brand-voice", icon: Mic },
 ];
 
 export function Sidebar() {
@@ -42,9 +50,33 @@ export function Sidebar() {
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {navItems.map((item) => {
           const active = location.pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                active
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              )}
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          );
+        })}
+
+        <div className="pb-1 pt-3">
+          <p className="px-3 text-xs font-semibold uppercase text-sidebar-foreground/50">
+            Settings
+          </p>
+        </div>
+        {settingsItems.map((item) => {
+          const active = location.pathname === item.href;
           return (
             <Link
               key={item.href}

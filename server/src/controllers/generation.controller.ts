@@ -3,6 +3,7 @@ import type { AuthRequest } from "../middleware/auth.js";
 import Product from "../models/Product.js";
 import Generation from "../models/Generation.js";
 import BulkJob from "../models/BulkJob.js";
+import User from "../models/User.js";
 import { logger } from "../utils/logger.js";
 import {
   callGenerateSingle,
@@ -111,6 +112,9 @@ export const generateSingle = async (req: AuthRequest, res: Response) => {
 
     // Cache the generation
     await setCachedGeneration(cacheKey, String(generation._id));
+
+    // Increment usage counter
+    await User.findByIdAndUpdate(userId, { $inc: { monthlyGenerations: 1 } });
 
     res.status(201).json(generation);
   } catch (error: unknown) {
