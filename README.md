@@ -1,4 +1,4 @@
-# ProductWriter AI
+# Shopdesc AI
 
 AI-powered product description generator for e-commerce sellers.
 
