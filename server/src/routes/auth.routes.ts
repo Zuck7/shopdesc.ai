@@ -19,10 +19,86 @@ import {
 
 const router = Router();
 
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, name]
+ *             properties:
+ *               email: { type: string, format: email }
+ *               password: { type: string, minLength: 8 }
+ *               name: { type: string }
+ *     responses:
+ *       201: { description: User created, content: { application/json: { schema: { type: object, properties: { user: { $ref: '#/components/schemas/User' }, accessToken: { type: string } } } } } }
+ *       409: { description: Email already exists }
+ */
 router.post("/register", validate(registerSchema), register);
+
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Log in with email and password
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email: { type: string, format: email }
+ *               password: { type: string }
+ *     responses:
+ *       200: { description: Login successful }
+ *       401: { description: Invalid credentials }
+ */
 router.post("/login", validate(loginSchema), login);
+
+/**
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     summary: Refresh access token using cookie
+ *     tags: [Auth]
+ *     security: [{ cookieAuth: [] }]
+ *     responses:
+ *       200: { description: New access token }
+ *       401: { description: No or invalid refresh token }
+ */
 router.post("/refresh", refreshToken);
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Log out and clear refresh token cookie
+ *     tags: [Auth]
+ *     responses:
+ *       200: { description: Logged out }
+ */
 router.post("/logout", logout);
+
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current authenticated user profile
+ *     tags: [Auth]
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: User profile, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+ *       401: { description: Not authenticated }
+ */
 router.get("/me", getMe);
 
 // Google OAuth
