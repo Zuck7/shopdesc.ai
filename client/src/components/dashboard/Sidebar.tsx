@@ -5,13 +5,7 @@ import {
   Sparkles,
   Layers,
   FileText,
-<<<<<<< HEAD
-  BarChart3,
-  CreditCard,
-  Mic,
-=======
   Settings,
->>>>>>> parent of 8ce203c (Phase 5 complete)
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";

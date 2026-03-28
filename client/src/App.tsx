@@ -29,13 +29,6 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-<<<<<<< HEAD
-        <Sentry.ErrorBoundary fallback={<p>An error occurred. Please refresh the page.</p>}>
-          <ErrorBoundary>
-          <Routes>
-            {/* Public landing page */}
-            <Route path="/" element={<LandingPage />} />
-=======
         <Routes>
           {/* Auth routes */}
           <Route element={<AuthLayout />}>
@@ -43,7 +36,6 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           </Route>
->>>>>>> parent of 8ce203c (Phase 5 complete)
 
           {/* OAuth callback */}
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -64,38 +56,9 @@ function App() {
             </Route>
           </Route>
 
-<<<<<<< HEAD
-            {/* OAuth callback */}
-            <Route path="/auth/callback" element={<AuthCallbackPage />} />
-
-            {/* Protected dashboard routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<DashboardLayout />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/products" element={<ProductsListPage />} />
-                <Route path="/products/new" element={<NewProductPage />} />
-                <Route path="/products/import" element={<ImportProductsPage />} />
-                <Route path="/products/:id" element={<ProductDetailPage />} />
-                <Route path="/generate" element={<GeneratePage />} />
-                <Route path="/generate/bulk" element={<BulkGeneratePage />} />
-                <Route path="/generate/jobs/:jobId" element={<JobProgressPage />} />
-                <Route path="/results/:id" element={<GenerationDetailPage />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/settings/billing" element={<BillingPage />} />
-                <Route path="/settings/brand-voice" element={<BrandVoicePage />} />
-              </Route>
-            </Route>
-
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </ErrorBoundary>
-        </Sentry.ErrorBoundary>
-=======
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
->>>>>>> parent of 8ce203c (Phase 5 complete)
       </BrowserRouter>
       <Toaster />
     </QueryClientProvider>
