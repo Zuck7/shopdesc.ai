@@ -68,7 +68,7 @@ export function AnalyticsPage() {
   if (!data) return null;
 
   const seoData = data.seoScoreDistribution.map((d) => ({
-    range: d.label,
+    range: d.range,
     count: d.count,
   }));
 
@@ -165,8 +165,8 @@ export function AnalyticsPage() {
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
-                  label={(props) =>
-                    `${String(props.name ?? "")} ${(((props.percent as number) ?? 0) * 100).toFixed(0)}%`
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
                   }
                 >
                   {platformData.map((_, i) => (

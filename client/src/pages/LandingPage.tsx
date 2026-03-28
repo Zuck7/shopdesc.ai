@@ -112,6 +112,7 @@ export function LandingPage() {
 }
 
 /* Inline pricing grid for the landing page (no auth needed) */
+import { usePlans } from "@/hooks/useBilling";
 import { Check } from "lucide-react";
 import {
   Card,
@@ -122,18 +123,24 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-
-const LANDING_PLANS = [
-  { name: "free", price: 0, limit: 5, features: ["5 products/month", "All platforms", "3 variants per product"] },
-  { name: "starter", price: 29, limit: 100, features: ["100 products/month", "All platforms", "3 variants per product", "Bulk generation", "CSV export"] },
-  { name: "pro", price: 79, limit: 1000, features: ["1,000 products/month", "All platforms", "3 variants per product", "Bulk generation", "CSV + JSON export", "Competitor analysis", "Priority processing"] },
-  { name: "enterprise", price: 199, limit: -1, features: ["Unlimited products", "All platforms", "3 variants per product", "Bulk generation", "CSV + JSON export", "Competitor analysis", "Priority processing", "API access", "Dedicated support"] },
-];
+import { Skeleton } from "@/components/ui/skeleton";
 
 function LandingPricingGrid() {
+  const { data: plans, isLoading } = usePlans();
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-72" />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {LANDING_PLANS.map((plan) => {
+      {plans?.map((plan) => {
         const isPopular = plan.name === "pro";
         return (
           <Card

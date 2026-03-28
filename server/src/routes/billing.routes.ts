@@ -21,70 +21,18 @@ router.post(
 );
 
 // Authenticated routes
-
-/**
- * @swagger
- * /billing/plans:
- *   get:
- *     summary: Get all available subscription plans
- *     tags: [Billing]
- *     responses:
- *       200: { description: Array of plans, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Plan' } } } } }
- */
 router.get("/plans", getPlans as unknown as RequestHandler);
-
-/**
- * @swagger
- * /billing/subscribe:
- *   post:
- *     summary: Create a Stripe checkout session
- *     tags: [Billing]
- *     security: [{ bearerAuth: [] }]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [planId]
- *             properties:
- *               planId: { type: string, enum: [starter, pro, enterprise] }
- *     responses:
- *       200: { description: Checkout session URL }
- */
 router.post(
   "/subscribe",
   authMiddleware as unknown as RequestHandler,
   validate(subscribeSchema) as unknown as RequestHandler,
   createCheckoutSession as unknown as RequestHandler
 );
-
-/**
- * @swagger
- * /billing/portal:
- *   post:
- *     summary: Create a Stripe billing portal session
- *     tags: [Billing]
- *     security: [{ bearerAuth: [] }]
- *     responses:
- *       200: { description: Portal session URL }
- */
 router.post(
   "/portal",
   authMiddleware as unknown as RequestHandler,
   createPortalSession as unknown as RequestHandler
 );
-
-/**
- * @swagger
- * /billing/usage:
- *   get:
- *     summary: Get current plan usage
- *     tags: [Billing]
- *     security: [{ bearerAuth: [] }]
- *     responses:
- *       200: { description: Usage data with plan/limit/count }
- */
 router.get(
   "/usage",
   authMiddleware as unknown as RequestHandler,

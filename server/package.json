@@ -9,16 +9,12 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint .",
-    "seed": "tsx src/scripts/seed.ts",
-    "test": "NODE_ENV=test JWT_SECRET=test-jwt-secret-that-is-at-least-32-chars JWT_REFRESH_SECRET=test-refresh-secret-that-is-at-least-32-chars NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --detectOpenHandles",
-    "test:watch": "NODE_ENV=test JWT_SECRET=test-jwt-secret-that-is-at-least-32-chars JWT_REFRESH_SECRET=test-refresh-secret-that-is-at-least-32-chars NODE_OPTIONS='--experimental-vm-modules' jest --watch --forceExit",
-    "test:coverage": "NODE_ENV=test JWT_SECRET=test-jwt-secret-that-is-at-least-32-chars JWT_REFRESH_SECRET=test-refresh-secret-that-is-at-least-32-chars NODE_OPTIONS='--experimental-vm-modules' jest --coverage --forceExit --detectOpenHandles"
+    "seed": "tsx src/scripts/seed.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@sentry/node": "^10.46.0",
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.71.0",
@@ -36,8 +32,6 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-local": "^1.0.0",
     "stripe": "^20.4.1",
-    "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1",
     "winston": "^3.19.0",
     "zod": "^4.3.6"
   },
@@ -46,21 +40,13 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.1.0",
     "@types/node": "^25.5.0",
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/passport-local": "^1.0.38",
-    "@types/supertest": "^7.2.0",
-    "@types/swagger-jsdoc": "^6.0.4",
-    "@types/swagger-ui-express": "^4.1.8",
     "eslint": "^10.0.3",
-    "jest": "^30.3.0",
-    "mongodb-memory-server": "^11.0.1",
-    "supertest": "^7.2.2",
-    "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
