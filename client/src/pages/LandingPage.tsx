@@ -112,7 +112,7 @@ export function LandingPage() {
 }
 
 /* Inline pricing grid for the landing page (no auth needed) */
-import { usePlans } from "@/hooks/useBilling";
+import { usePlans, type Plan } from "@/hooks/useBilling";
 import { Check } from "lucide-react";
 import {
   Card,
@@ -140,7 +140,7 @@ function LandingPricingGrid() {
 
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {plans?.map((plan) => {
+      {plans?.map((plan: Plan) => {
         const isPopular = plan.name === "pro";
         return (
           <Card
@@ -173,7 +173,7 @@ function LandingPricingGrid() {
                   : `${plan.limit} generations/mo`}
               </p>
               <ul className="space-y-2">
-                {plan.features.map((feature) => (
+                {plan.features.map((feature: string) => (
                   <li
                     key={feature}
                     className="flex items-start gap-2 text-sm"

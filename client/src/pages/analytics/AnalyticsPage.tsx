@@ -67,12 +67,12 @@ export function AnalyticsPage() {
 
   if (!data) return null;
 
-  const seoData = data.seoScoreDistribution.map((d) => ({
+  const seoData = data.seoScoreDistribution.map((d: { range: string; count: number }) => ({
     range: d.range,
     count: d.count,
   }));
 
-  const platformData = data.platformBreakdown.map((d) => ({
+  const platformData = data.platformBreakdown.map((d: { platform: string; count: number }) => ({
     name: d.platform,
     value: d.count,
   }));
@@ -165,11 +165,11 @@ export function AnalyticsPage() {
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
-                  label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
+                  label={({ name, percent }: { name?: string; percent?: number }) =>
+                    `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`
                   }
                 >
-                  {platformData.map((_, i) => (
+                  {platformData.map((_: { name: string; value: number }, i: number) => (
                     <Cell
                       key={i}
                       fill={COLORS[i % COLORS.length]}

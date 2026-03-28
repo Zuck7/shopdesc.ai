@@ -18,7 +18,7 @@ export function AuthCallbackPage() {
     api
       .get("/auth/me", { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
-        login(token, res.data.user);
+        login(token, res.data);
         navigate("/dashboard", { replace: true });
       })
       .catch(() => {

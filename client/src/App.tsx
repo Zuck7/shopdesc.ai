@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import * as Sentry from "@sentry/react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -18,6 +17,8 @@ import { GeneratePage } from "@/pages/generate/GeneratePage";
 import { BulkGeneratePage } from "@/pages/generate/BulkGeneratePage";
 import { JobProgressPage } from "@/pages/generate/JobProgressPage";
 import { GenerationDetailPage } from "@/pages/results/GenerationDetailPage";
+import { AnalyticsPage } from "@/pages/analytics/AnalyticsPage";
+import { LandingPage } from "@/pages/LandingPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,12 +53,16 @@ function App() {
               <Route path="/generate/bulk" element={<BulkGeneratePage />} />
               <Route path="/generate/jobs/:jobId" element={<JobProgressPage />} />
               <Route path="/results/:id" element={<GenerationDetailPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/settings" element={<DashboardPage />} />
             </Route>
           </Route>
 
+          {/* Public landing */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
       <Toaster />
