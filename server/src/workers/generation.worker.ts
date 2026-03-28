@@ -4,7 +4,6 @@ import { logger } from "../utils/logger.js";
 import Product from "../models/Product.js";
 import Generation from "../models/Generation.js";
 import BulkJob from "../models/BulkJob.js";
-import User from "../models/User.js";
 import {
   callGenerateSingle,
   type SingleGeneratePayload,
@@ -112,9 +111,6 @@ async function processBulkGeneration(job: Job<BulkJobData>) {
       });
 
       completed++;
-
-      // Increment usage counter
-      await User.findByIdAndUpdate(userId, { $inc: { monthlyGenerations: 1 } });
     } catch (err) {
       logger.error(
         `Bulk job ${bulkJobId}: failed product ${productId}`,
