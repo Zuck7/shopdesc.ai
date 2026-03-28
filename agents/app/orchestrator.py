@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 def should_analyze_competitors(state: GenerationState) -> str:
     if state.include_competitor_analysis:
-        return "competitor_research"
+        return "competitor_analysis"
     return "copywriting"
 
 
@@ -37,7 +37,7 @@ def build_graph() -> StateGraph:
 
     workflow.add_node("product_analysis", run_product_analysis)
     workflow.add_node("seo_research", run_seo_agent)
-    workflow.add_node("competitor_research", run_competitor_agent)
+    workflow.add_node("competitor_analysis", run_competitor_agent)
     workflow.add_node("copywriting", run_copywriting_agent)
 
     workflow.set_entry_point("product_analysis")
@@ -47,11 +47,11 @@ def build_graph() -> StateGraph:
         "seo_research",
         should_analyze_competitors,
         {
-            "competitor_research": "competitor_research",
+            "competitor_analysis": "competitor_analysis",
             "copywriting": "copywriting",
         },
     )
-    workflow.add_edge("competitor_research", "copywriting")
+    workflow.add_edge("competitor_analysis", "copywriting")
     workflow.add_edge("copywriting", END)
 
     return workflow
@@ -97,9 +97,6 @@ async def generate_single(request: SingleGenerateRequest) -> GenerationOutput:
         )
 
     output = GenerationOutput(
-        product_id=request.product.name,  # Use product name as ID if no explicit ID
-        platform=request.platform,
-        tone=request.tone,
         product_brief=final_state.product_brief,
         seo_strategy=final_state.seo_strategy,
         variants=final_state.variants,

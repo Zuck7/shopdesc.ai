@@ -30,9 +30,6 @@ const envSchema = z.object({
   // Email (optional)
   RESEND_API_KEY: z.string().optional(),
 
-  // Sentry (optional)
-  SENTRY_DSN: z.string().optional(),
-
   // Shopify OAuth (optional)
   SHOPIFY_API_KEY: z.string().optional(),
   SHOPIFY_API_SECRET: z.string().optional(),

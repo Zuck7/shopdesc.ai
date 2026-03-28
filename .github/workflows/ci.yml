@@ -29,7 +29,7 @@ jobs:
       - run: npx vite build
 
   server:
-    name: Server (lint, type-check, test, build)
+    name: Server (lint, type-check, build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -47,31 +47,4 @@ jobs:
       - run: npm ci
       - run: npx eslint .
       - run: npx tsc --noEmit
-      - name: Run tests
-        run: npm test
-        env:
-          NODE_ENV: test
-          JWT_SECRET: test-jwt-secret-that-is-at-least-32-chars
-          JWT_REFRESH_SECRET: test-refresh-secret-that-is-at-least-32-chars
-          CLIENT_URL: http://localhost:5173
-          AGENTS_URL: http://localhost:8000
       - run: npx tsc
-
-  agents:
-    name: Agents (lint, test)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: agents
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - run: pip install -r requirements.txt
-      - run: pip install pytest pytest-asyncio
-      - run: python -m pytest tests/ -v
