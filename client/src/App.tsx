@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import * as Sentry from "@sentry/react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -28,7 +29,6 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-<<<<<<< HEAD
         <Routes>
           {/* Auth routes */}
           <Route element={<AuthLayout />}>
@@ -36,12 +36,6 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           </Route>
-=======
-        <ErrorBoundary>
-          <Routes>
-            {/* Public landing page */}
-            <Route path="/" element={<LandingPage />} />
->>>>>>> parent of 1ed44b9 (Phase 6 complete)
 
           {/* OAuth callback */}
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
@@ -62,37 +56,9 @@ function App() {
             </Route>
           </Route>
 
-<<<<<<< HEAD
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-=======
-            {/* OAuth callback */}
-            <Route path="/auth/callback" element={<AuthCallbackPage />} />
-
-            {/* Protected dashboard routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<DashboardLayout />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/products" element={<ProductsListPage />} />
-                <Route path="/products/new" element={<NewProductPage />} />
-                <Route path="/products/import" element={<ImportProductsPage />} />
-                <Route path="/products/:id" element={<ProductDetailPage />} />
-                <Route path="/generate" element={<GeneratePage />} />
-                <Route path="/generate/bulk" element={<BulkGeneratePage />} />
-                <Route path="/generate/jobs/:jobId" element={<JobProgressPage />} />
-                <Route path="/results/:id" element={<GenerationDetailPage />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/settings/billing" element={<BillingPage />} />
-                <Route path="/settings/brand-voice" element={<BrandVoicePage />} />
-              </Route>
-            </Route>
-
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </ErrorBoundary>
->>>>>>> parent of 1ed44b9 (Phase 6 complete)
       </BrowserRouter>
       <Toaster />
     </QueryClientProvider>

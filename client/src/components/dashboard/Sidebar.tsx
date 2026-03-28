@@ -5,12 +5,6 @@ import {
   Sparkles,
   Layers,
   FileText,
-<<<<<<< HEAD
-=======
-  BarChart3,
-  CreditCard,
-  Mic,
->>>>>>> parent of 1ed44b9 (Phase 6 complete)
   Settings,
   LogOut,
 } from "lucide-react";
