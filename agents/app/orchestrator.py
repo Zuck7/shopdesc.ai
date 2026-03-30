@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 def should_analyze_competitors(state: GenerationState) -> str:
     if state.include_competitor_analysis:
-        return "competitor_analysis"
+        return "competitor_research"
     return "copywriting"
 
 
@@ -37,7 +37,7 @@ def build_graph() -> StateGraph:
 
     workflow.add_node("product_analysis", run_product_analysis)
     workflow.add_node("seo_research", run_seo_agent)
-    workflow.add_node("competitor_analysis", run_competitor_agent)
+    workflow.add_node("competitor_research", run_competitor_agent)
     workflow.add_node("copywriting", run_copywriting_agent)
 
     workflow.set_entry_point("product_analysis")
@@ -47,11 +47,11 @@ def build_graph() -> StateGraph:
         "seo_research",
         should_analyze_competitors,
         {
-            "competitor_analysis": "competitor_analysis",
+            "competitor_research": "competitor_research",
             "copywriting": "copywriting",
         },
     )
-    workflow.add_edge("competitor_analysis", "copywriting")
+    workflow.add_edge("competitor_research", "copywriting")
     workflow.add_edge("copywriting", END)
 
     return workflow

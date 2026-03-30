@@ -6,7 +6,7 @@ const envSchema = z.object({
 
   // Database
   MONGO_URI: z.string().default("mongodb://localhost:27017/productwriter"),
-  REDIS_URL: z.string().default("redis://localhost:6379"),
+  REDIS_URL: z.string().optional(),
 
   // JWT
   JWT_SECRET: z.string().min(32),
@@ -29,6 +29,9 @@ const envSchema = z.object({
   STRIPE_STARTER_PRICE_ID: z.string().optional(),
   STRIPE_PRO_PRICE_ID: z.string().optional(),
   STRIPE_ENTERPRISE_PRICE_ID: z.string().optional(),
+
+  // Sentry (optional)
+  SENTRY_DSN: z.string().optional(),
 
   // Email (optional)
   RESEND_API_KEY: z.string().optional(),

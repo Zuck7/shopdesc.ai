@@ -205,6 +205,11 @@ export const generateBulk = async (req: AuthRequest, res: Response) => {
     });
 
     // Add to BullMQ queue
+    if (!generationQueue) {
+      res.status(503).json({ message: "Bulk generation unavailable — Redis not connected" });
+      return;
+    }
+
     const jobData: BulkJobData = {
       bulkJobId: String(bulkJob._id),
       userId: String(userId),

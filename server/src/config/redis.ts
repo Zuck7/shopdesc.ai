@@ -2,10 +2,30 @@ import { Redis } from "ioredis";
 import { env } from "./env.js";
 import { logger } from "../utils/logger.js";
 
-export const redis = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: null, // required by BullMQ
-  enableReadyCheck: false,
-});
+let redis: Redis | null = null;
 
-redis.on("connect", () => logger.info("Redis connected"));
-redis.on("error", (err: Error) => logger.error("Redis error:", err));
+if (env.REDIS_URL) {
+  const instance = new Redis(env.REDIS_URL, {
+    maxRetriesPerRequest: null, // required by BullMQ
+    enableReadyCheck: false,
+    lazyConnect: true,
+    retryStrategy() {
+      return null; // never auto-retry
+    },
+  });
+
+  instance.on("error", () => {});
+
+  try {
+    await instance.connect();
+    redis = instance;
+    logger.info("Redis connected");
+  } catch {
+    logger.warn("Redis connection failed — bulk generation and caching disabled");
+    instance.disconnect();
+  }
+} else {
+  logger.warn("REDIS_URL not set — running without Redis");
+}
+
+export { redis };

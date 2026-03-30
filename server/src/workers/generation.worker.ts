@@ -152,6 +152,11 @@ async function processBulkGeneration(job: Job<BulkJobData>) {
 }
 
 export function startGenerationWorker() {
+  if (!redis) {
+    logger.warn("Redis unavailable — generation worker disabled");
+    return null;
+  }
+
   const worker = new Worker<BulkJobData>(
     "generation",
     processBulkGeneration,

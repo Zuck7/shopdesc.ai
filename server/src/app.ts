@@ -3,7 +3,10 @@ import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { rateLimit } from "express-rate-limit";
+import swaggerUi from "swagger-ui-express";
+import * as Sentry from "@sentry/node";
 import { env } from "./config/env.js";
+import { swaggerSpec } from "./config/swagger.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import authRoutes from "./routes/auth.routes.js";
 import productRoutes from "./routes/product.routes.js";
@@ -41,6 +44,12 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// API documentation
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get("/api/docs.json", (_req, res) => {
+  res.json(swaggerSpec);
+});
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
@@ -48,6 +57,9 @@ app.use("/api/generate", generationRoutes);
 app.use("/api/generations", generationRoutes);
 app.use("/api/billing", billingRoutes);
 app.use("/api/users", userRoutes);
+
+// Sentry error handler (must be before custom error handler)
+Sentry.setupExpressErrorHandler(app);
 
 // Global error handler (must be last)
 app.use(errorHandler);

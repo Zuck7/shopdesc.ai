@@ -18,6 +18,7 @@ export function buildCacheKey(
 }
 
 export async function getCachedGeneration(key: string): Promise<string | null> {
+  if (!redis) return null;
   try {
     return await redis.get(key);
   } catch (err) {
@@ -30,6 +31,7 @@ export async function setCachedGeneration(
   key: string,
   generationId: string
 ): Promise<void> {
+  if (!redis) return;
   try {
     await redis.set(key, generationId, "EX", CACHE_TTL);
   } catch (err) {
