@@ -125,8 +125,8 @@ workflow.add_edge("quality_check", END)
 | **Node.js** | 20 LTS | Runtime |
 | **Express** | 4.x | HTTP framework |
 | **TypeScript** | 5.x | Type safety on the server |
-| **MongoDB** | 7.x | Primary database (document store) |
-| **Mongoose** | 8.x | MongoDB ODM — schemas, validation, middleware |
+| **PostgreSQL** | 16.x | Primary database (relational) |
+| **Drizzle ORM** | 0.45+ | TypeScript ORM — schema, queries, migrations |
 | **Redis** | 7.x | Caching, rate limiting, session store, job queue broker |
 | **BullMQ** | 5.x | Background job queue for bulk generation |
 | **Passport.js** | 0.7+ | Authentication strategies (local, Google OAuth, Shopify OAuth) |
@@ -161,7 +161,7 @@ workflow.add_edge("quality_check", END)
 | **GitHub Actions** | CI/CD pipeline |
 | **Vercel / Netlify** | Frontend SPA hosting |
 | **Railway / Render** | Express API + Python agent service hosting |
-| **MongoDB Atlas** | Managed MongoDB (free tier available) |
+| **Neon / Supabase / Railway** | Managed PostgreSQL |
 | **Upstash Redis** | Managed Redis (serverless, pay-per-request) |
 | **Sentry** | Error monitoring and performance tracking |
 | **Resend** | Transactional emails (welcome, password reset, job complete) |
@@ -177,155 +177,86 @@ workflow.add_edge("quality_check", END)
 
 ---
 
-## 4. DATABASE SCHEMA (MongoDB + Mongoose)
+## 4. DATABASE SCHEMA (PostgreSQL + Drizzle ORM)
 
-### Users Collection
-
-```typescript
-// server/src/models/User.ts
-
-import mongoose, { Schema, Document } from "mongoose";
-
-export interface IUser extends Document {
-  email: string;
-  passwordHash: string;
-  name: string;
-  image?: string;
-  googleId?: string;
-
-  // Brand settings
-  brandName?: string;
-  defaultTone: "professional" | "casual" | "luxury" | "playful" | "custom";
-  customToneInstructions?: string;
-
-  // Subscription
-  plan: "free" | "starter" | "pro" | "enterprise";
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
-
-  // Usage tracking
-  monthlyGenerations: number;
-  generationLimit: number;
-  usageResetDate: Date;
-
-  // Shopify integration
-  shopifyDomain?: string;
-  shopifyAccessToken?: string; // encrypted
-
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const UserSchema = new Schema<IUser>(
-  {
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    passwordHash: { type: String },
-    name: { type: String, required: true, trim: true },
-    image: { type: String },
-    googleId: { type: String, sparse: true },
-
-    brandName: { type: String },
-    defaultTone: {
-      type: String,
-      enum: ["professional", "casual", "luxury", "playful", "custom"],
-      default: "professional",
-    },
-    customToneInstructions: { type: String },
-
-    plan: {
-      type: String,
-      enum: ["free", "starter", "pro", "enterprise"],
-      default: "free",
-    },
-    stripeCustomerId: { type: String },
-    stripeSubscriptionId: { type: String },
-
-    monthlyGenerations: { type: Number, default: 0 },
-    generationLimit: { type: Number, default: 5 },
-    usageResetDate: { type: Date, default: Date.now },
-
-    shopifyDomain: { type: String },
-    shopifyAccessToken: { type: String },
-  },
-  { timestamps: true }
-);
-
-UserSchema.index({ email: 1 });
-UserSchema.index({ stripeCustomerId: 1 });
-
-export default mongoose.model<IUser>("User", UserSchema);
-```
-
-### Products Collection
+All tables are defined in a single schema file using Drizzle ORM.
 
 ```typescript
-// server/src/models/Product.ts
+// server/src/models/schema.ts
 
-import mongoose, { Schema, Document } from "mongoose";
+import {
+  pgTable, uuid, varchar, text, integer, numeric,
+  boolean, timestamp, jsonb, index, uniqueIndex,
+} from "drizzle-orm/pg-core";
 
-export interface IProduct extends Document {
-  userId: mongoose.Types.ObjectId;
-  source: "manual" | "csv" | "shopify";
-  externalId?: string; // Shopify product ID
+// ─── Type aliases ───────────────────────────────────────────────────────────
 
-  name: string;
-  category?: string;
-  subcategory?: string;
-  features: string[];
-  benefits: string[];
-  price?: number;
-  currency: string;
-  images: string[];
-  brand?: string;
-  targetAudience?: string;
-  rawData?: Record<string, any>;
-  tags: string[];
+export type Tone = "professional" | "casual" | "luxury" | "playful" | "custom";
+export type Plan = "free" | "starter" | "pro" | "enterprise";
+export type Platform = "shopify" | "amazon" | "etsy" | "woocommerce" | "generic";
+export type Source = "manual" | "csv" | "shopify";
+export type VariantStatus = "generated" | "approved" | "rejected" | "edited";
+export type BulkJobStatus = "queued" | "processing" | "completed" | "failed" | "cancelled";
 
-  createdAt: Date;
-  updatedAt: Date;
-}
+// ─── Users table ────────────────────────────────────────────────────────────
 
-const ProductSchema = new Schema<IProduct>(
-  {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    source: {
-      type: String,
-      enum: ["manual", "csv", "shopify"],
-      default: "manual",
-    },
-    externalId: { type: String },
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: varchar("email", { length: 255 }).notNull(),
+  passwordHash: text("password_hash"),
+  name: varchar("name", { length: 255 }).notNull(),
+  image: text("image"),
+  googleId: varchar("google_id", { length: 255 }),
+  brandName: varchar("brand_name", { length: 255 }),
+  defaultTone: varchar("default_tone", { length: 20 }).notNull().default("professional").$type<Tone>(),
+  customToneInstructions: text("custom_tone_instructions"),
+  plan: varchar("plan", { length: 20 }).notNull().default("free").$type<Plan>(),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+  monthlyGenerations: integer("monthly_generations").notNull().default(0),
+  generationLimit: integer("generation_limit").notNull().default(5),
+  usageResetDate: timestamp("usage_reset_date", { withTimezone: true }).notNull().defaultNow(),
+  shopifyDomain: varchar("shopify_domain", { length: 255 }),
+  shopifyAccessToken: text("shopify_access_token"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("users_email_idx").on(table.email),
+  index("users_stripe_customer_id_idx").on(table.stripeCustomerId),
+  index("users_google_id_idx").on(table.googleId),
+]);
 
-    name: { type: String, required: true, trim: true },
-    category: { type: String },
-    subcategory: { type: String },
-    features: [{ type: String }],
-    benefits: [{ type: String }],
-    price: { type: Number },
-    currency: { type: String, default: "USD" },
-    images: [{ type: String }],
-    brand: { type: String },
-    targetAudience: { type: String },
-    rawData: { type: Schema.Types.Mixed },
-    tags: [{ type: String }],
-  },
-  { timestamps: true }
-);
+// ─── Products table ─────────────────────────────────────────────────────────
 
-ProductSchema.index({ userId: 1, source: 1 });
-ProductSchema.index({ userId: 1, name: "text" });
+export const products = pgTable("products", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  source: varchar("source", { length: 20 }).notNull().default("manual").$type<Source>(),
+  externalId: varchar("external_id", { length: 255 }),
+  name: varchar("name", { length: 500 }).notNull(),
+  category: varchar("category", { length: 255 }),
+  subcategory: varchar("subcategory", { length: 255 }),
+  features: jsonb("features").notNull().default([]).$type<string[]>(),
+  benefits: jsonb("benefits").notNull().default([]).$type<string[]>(),
+  price: numeric("price", { precision: 10, scale: 2 }),
+  currency: varchar("currency", { length: 10 }).notNull().default("USD"),
+  images: jsonb("images").notNull().default([]).$type<string[]>(),
+  brand: varchar("brand", { length: 255 }),
+  targetAudience: text("target_audience"),
+  rawData: jsonb("raw_data").$type<Record<string, unknown>>(),
+  tags: jsonb("tags").notNull().default([]).$type<string[]>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("products_user_id_idx").on(table.userId),
+  index("products_user_source_idx").on(table.userId, table.source),
+  index("products_name_idx").on(table.name),
+]);
 
-export default mongoose.model<IProduct>("Product", ProductSchema);
-```
-
-### Generations Collection
-
-```typescript
-// server/src/models/Generation.ts
-
-import mongoose, { Schema, Document } from "mongoose";
+// ─── Generations table ──────────────────────────────────────────────────────
 
 export interface IVariant {
-  variantLabel: string; // "A", "B", "C"
+  variantLabel: string;
   title: string;
   description: string;
   metaTitle?: string;
@@ -335,151 +266,52 @@ export interface IVariant {
   seoScore?: number;
   readabilityScore?: number;
   wordCount: number;
-  status: "generated" | "approved" | "rejected" | "edited";
-  editedContent?: Record<string, any>;
+  status: VariantStatus;
+  editedContent?: Record<string, unknown>;
 }
 
-export interface IGeneration extends Document {
-  userId: mongoose.Types.ObjectId;
-  productId: mongoose.Types.ObjectId;
-  jobId?: mongoose.Types.ObjectId;
+export const generations = pgTable("generations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  jobId: uuid("job_id").references(() => bulkJobs.id, { onDelete: "set null" }),
+  platform: varchar("platform", { length: 20 }).notNull().default("generic").$type<Platform>(),
+  tone: varchar("tone", { length: 20 }).notNull().default("professional").$type<Tone>(),
+  productBrief: jsonb("product_brief").$type<Record<string, unknown>>(),
+  seoStrategy: jsonb("seo_strategy").$type<Record<string, unknown>>(),
+  competitorAnalysis: jsonb("competitor_analysis").$type<Record<string, unknown>>(),
+  variants: jsonb("variants").notNull().default([]).$type<IVariant[]>(),
+  totalTokensUsed: integer("total_tokens_used").notNull().default(0),
+  costEstimate: numeric("cost_estimate", { precision: 10, scale: 6 }).notNull().default("0"),
+  processingTimeMs: integer("processing_time_ms").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("generations_user_id_idx").on(table.userId),
+  index("generations_product_id_idx").on(table.productId),
+  index("generations_job_id_idx").on(table.jobId),
+  index("generations_product_created_idx").on(table.productId, table.createdAt),
+]);
 
-  platform: "shopify" | "amazon" | "etsy" | "woocommerce" | "generic";
-  tone: "professional" | "casual" | "luxury" | "playful" | "custom";
+// ─── Bulk Jobs table ────────────────────────────────────────────────────────
 
-  // Agent outputs
-  productBrief?: Record<string, any>;
-  seoStrategy?: Record<string, any>;
-  competitorAnalysis?: Record<string, any>;
-
-  // Generated variants
-  variants: IVariant[];
-
-  // Metadata
-  totalTokensUsed: number;
-  costEstimate: number;
-  processingTimeMs: number;
-
-  createdAt: Date;
-}
-
-const VariantSchema = new Schema<IVariant>(
-  {
-    variantLabel: { type: String, required: true },
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    metaTitle: { type: String },
-    metaDescription: { type: String },
-    keywords: [{ type: String }],
-    bulletPoints: [{ type: String }],
-    seoScore: { type: Number, min: 0, max: 100 },
-    readabilityScore: { type: Number, min: 0, max: 100 },
-    wordCount: { type: Number, default: 0 },
-    status: {
-      type: String,
-      enum: ["generated", "approved", "rejected", "edited"],
-      default: "generated",
-    },
-    editedContent: { type: Schema.Types.Mixed },
-  },
-  { _id: true }
-);
-
-const GenerationSchema = new Schema<IGeneration>(
-  {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    productId: { type: Schema.Types.ObjectId, ref: "Product", required: true, index: true },
-    jobId: { type: Schema.Types.ObjectId, ref: "BulkJob", index: true },
-
-    platform: {
-      type: String,
-      enum: ["shopify", "amazon", "etsy", "woocommerce", "generic"],
-      default: "generic",
-    },
-    tone: {
-      type: String,
-      enum: ["professional", "casual", "luxury", "playful", "custom"],
-      default: "professional",
-    },
-
-    productBrief: { type: Schema.Types.Mixed },
-    seoStrategy: { type: Schema.Types.Mixed },
-    competitorAnalysis: { type: Schema.Types.Mixed },
-
-    variants: [VariantSchema],
-
-    totalTokensUsed: { type: Number, default: 0 },
-    costEstimate: { type: Number, default: 0 },
-    processingTimeMs: { type: Number, default: 0 },
-  },
-  { timestamps: { createdAt: true, updatedAt: false } }
-);
-
-GenerationSchema.index({ productId: 1, createdAt: -1 });
-
-export default mongoose.model<IGeneration>("Generation", GenerationSchema);
-```
-
-### BulkJobs Collection
-
-```typescript
-// server/src/models/BulkJob.ts
-
-import mongoose, { Schema, Document } from "mongoose";
-
-export interface IBulkJob extends Document {
-  userId: mongoose.Types.ObjectId;
-
-  status: "queued" | "processing" | "completed" | "failed" | "cancelled";
-  platform: "shopify" | "amazon" | "etsy" | "woocommerce" | "generic";
-  tone: "professional" | "casual" | "luxury" | "playful" | "custom";
-  includeCompetitor: boolean;
-
-  productIds: mongoose.Types.ObjectId[];
-  totalProducts: number;
-  completedProducts: number;
-  failedProducts: number;
-
-  startedAt?: Date;
-  completedAt?: Date;
-  createdAt: Date;
-}
-
-const BulkJobSchema = new Schema<IBulkJob>(
-  {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-
-    status: {
-      type: String,
-      enum: ["queued", "processing", "completed", "failed", "cancelled"],
-      default: "queued",
-    },
-    platform: {
-      type: String,
-      enum: ["shopify", "amazon", "etsy", "woocommerce", "generic"],
-      default: "generic",
-    },
-    tone: {
-      type: String,
-      enum: ["professional", "casual", "luxury", "playful", "custom"],
-      default: "professional",
-    },
-    includeCompetitor: { type: Boolean, default: false },
-
-    productIds: [{ type: Schema.Types.ObjectId, ref: "Product" }],
-    totalProducts: { type: Number, default: 0 },
-    completedProducts: { type: Number, default: 0 },
-    failedProducts: { type: Number, default: 0 },
-
-    startedAt: { type: Date },
-    completedAt: { type: Date },
-  },
-  { timestamps: { createdAt: true, updatedAt: false } }
-);
-
-BulkJobSchema.index({ userId: 1, status: 1 });
-
-export default mongoose.model<IBulkJob>("BulkJob", BulkJobSchema);
+export const bulkJobs = pgTable("bulk_jobs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 20 }).notNull().default("queued").$type<BulkJobStatus>(),
+  platform: varchar("platform", { length: 20 }).notNull().default("generic").$type<Platform>(),
+  tone: varchar("tone", { length: 20 }).notNull().default("professional").$type<Tone>(),
+  includeCompetitor: boolean("include_competitor").notNull().default(false),
+  productIds: jsonb("product_ids").notNull().default([]).$type<string[]>(),
+  totalProducts: integer("total_products").notNull().default(0),
+  completedProducts: integer("completed_products").notNull().default(0),
+  failedProducts: integer("failed_products").notNull().default(0),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("bulk_jobs_user_id_idx").on(table.userId),
+  index("bulk_jobs_user_status_idx").on(table.userId, table.status),
+]);
 ```
 
 ---
@@ -493,7 +325,7 @@ productwriter-ai/
 │   └── workflows/
 │       ├── ci.yml                       # Lint + test + type-check on PR
 │       └── deploy.yml                   # Deploy client + server + agents
-├── docker-compose.yml                   # Local dev: mongo, redis, all services
+├── docker-compose.yml                   # Local dev: postgres, redis, all services
 ├── .env                                 # Local environment variables
 │
 ├── client/                              # React SPA (Vite)
@@ -605,17 +437,14 @@ productwriter-ai/
 │       ├── index.ts                     # Express app entry — connect DB, start server
 │       ├── app.ts                       # Express app setup — middleware, routes
 │       ├── config/
-│       │   ├── db.ts                    # MongoDB connection (mongoose.connect)
+│       │   ├── db.ts                    # PostgreSQL connection (Drizzle + pg Pool)
 │       │   ├── redis.ts                 # Redis client (ioredis)
 │       │   ├── queue.ts                 # BullMQ queue + worker setup
 │       │   ├── stripe.ts               # Stripe client initialization
 │       │   ├── passport.ts             # Passport strategies (local, google, shopify)
 │       │   └── env.ts                  # Environment variable validation (Zod)
 │       ├── models/
-│       │   ├── User.ts
-│       │   ├── Product.ts
-│       │   ├── Generation.ts
-│       │   └── BulkJob.ts
+│       │   └── schema.ts
 │       ├── routes/
 │       │   ├── auth.routes.ts           # /api/auth/*
 │       │   ├── product.routes.ts        # /api/products/*
@@ -934,10 +763,10 @@ Admin (internal):
 ```env
 # .env
 
-# ── MongoDB ──
-MONGODB_URI="mongodb://localhost:27017/productwriter"
-# Or MongoDB Atlas for production:
-# MONGODB_URI="mongodb+srv://user:password@cluster.mongodb.net/productwriter"
+# ── PostgreSQL ──
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/productwriter"
+# Or managed PostgreSQL for production:
+# DATABASE_URL="postgresql://user:password@host:5432/productwriter?sslmode=require"
 
 # ── Redis ──
 REDIS_URL="redis://localhost:6379"
@@ -1017,7 +846,7 @@ Constants:        SCREAMING_SNAKE    (MAX_PRODUCTS_PER_JOB, API_BASE_URL)
 Types/Interfaces: PascalCase + I     (IProduct, IUser, IGeneration)
 Express routes:   kebab-case files   (auth.routes.ts, product.routes.ts)
 Controllers:      camelCase          (getProducts, createProduct)
-Mongoose models:  PascalCase         (User, Product, Generation)
+Drizzle tables:   camelCase          (users, products, generations)
 Python:           snake_case         (product_analysis.py, generate_content())
 ```
 
@@ -1160,16 +989,16 @@ async def product_analysis_agent(input: ProductInput) -> ProductBrief:
 - [ ] Initialize client: `npm create vite@latest client -- --template react-ts`
 - [ ] Initialize server: Express + TypeScript boilerplate
 - [ ] Initialize agents: FastAPI project structure
-- [ ] Set up Docker Compose (mongo, redis, server, client, agents)
+- [ ] Set up Docker Compose (postgres, redis, server, client, agents)
 - [ ] Set up TailwindCSS + ShadCN/UI in client
-- [ ] Configure Mongoose connection + models (User, Product, Generation, BulkJob)
+- [ ] Configure Drizzle ORM connection + schema (User, Product, Generation, BulkJob)
 - [ ] Implement auth: register, login, JWT access/refresh tokens
 - [ ] Implement Passport.js local strategy + Google OAuth
 - [ ] Build auth pages in React: Login, Register, Forgot Password
 - [ ] Build dashboard layout: Sidebar, Header, routing with React Router
 - [ ] Set up Axios instance with auth interceptors
 - [ ] Set up GitHub Actions CI (lint, type-check, build for client + server)
-- [ ] Seed script: insert 50 sample products into MongoDB
+- [ ] Seed script: insert 50 sample products into PostgreSQL
 
 ### Phase 2: Product Data Pipeline (Week 2) — March 17–23
 **Goal: Full product CRUD, CSV import, Shopify sync**
@@ -1196,7 +1025,7 @@ async def product_analysis_agent(input: ProductInput) -> ProductBrief:
 - [ ] Build LangGraph orchestrator: wire all 4 agents with conditional edges
 - [ ] Expose `/generate/single` endpoint in FastAPI
 - [ ] Build `agentClient.ts` in Express: HTTP client to call FastAPI service
-- [ ] Wire Express route `POST /api/generate/single/:productId` → calls FastAPI → saves Generation to MongoDB
+- [ ] Wire Express route `POST /api/generate/single/:productId` → calls FastAPI → saves Generation to PostgreSQL
 - [ ] Build generation results page in React: variant cards, side-by-side comparison
 - [ ] Implement SEO score badge + readability score display
 
@@ -1239,7 +1068,7 @@ async def product_analysis_agent(input: ProductInput) -> ProductBrief:
 ### Phase 6: Testing, Deployment & Launch (Week 6) — April 14–20
 **Goal: Production-deployed, tested, first beta users**
 - [ ] Write unit tests for Express controllers (Jest + Supertest)
-- [ ] Write unit tests for Mongoose model validations
+- [ ] Write unit tests for Drizzle schema validations
 - [ ] Write integration tests for auth flow, product CRUD, generation flow
 - [ ] Write E2E tests for core flows (Playwright): register → import CSV → generate → view results → export
 - [ ] Write pytest tests for each Python agent (mock LLM responses)
@@ -1248,7 +1077,7 @@ async def product_analysis_agent(input: ProductInput) -> ProductBrief:
 - [ ] Deploy React SPA to Vercel or Netlify
 - [ ] Deploy Express API to Railway or Render
 - [ ] Deploy Python agent service to Railway or Render (separate service)
-- [ ] Set up MongoDB Atlas (free M0 tier or M10 for production)
+- [ ] Set up managed PostgreSQL (Neon, Supabase, or Railway Postgres)
 - [ ] Set up Upstash Redis
 - [ ] Configure environment variables in all deployment platforms
 - [ ] Set up custom domain + SSL (Cloudflare)
@@ -1267,7 +1096,7 @@ When generating code for this project, follow these rules:
 
 1. **The project has 3 separate services** — React client (port 5173), Express API (port 3001), Python agents (port 8000). They communicate via HTTP. Never import across service boundaries.
 
-2. **All MongoDB operations go through Mongoose models** — never use raw `db.collection()` calls. Always define and use typed Mongoose schemas with interfaces.
+2. **All database operations go through Drizzle ORM** — never use raw `pool.query()` calls. Always use the typed Drizzle schema defined in `models/schema.ts`.
 
 3. **All Express route handlers must be wrapped in try/catch** with errors forwarded to `next(error)` for the global error handler.
 
@@ -1295,7 +1124,7 @@ When generating code for this project, follow these rules:
 
 15. **File uploads (CSV)** use `multer` with memory storage. Max file size: 10MB. Parse with Papa Parse on the server, validate each row, return errors per row.
 
-16. **Mongoose population** — use `.populate()` sparingly. For list endpoints, return IDs only. For detail endpoints, populate related documents.
+16. **Drizzle joins** — use `leftJoin()` sparingly. For list endpoints, return IDs only. For detail endpoints, join related tables.
 
 ---
 
@@ -1330,13 +1159,13 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3001
-      - MONGODB_URI=mongodb://mongo:27017/productwriter
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/productwriter
       - REDIS_URL=redis://redis:6379
       - AGENT_SERVICE_URL=http://agents:8000
       - JWT_SECRET=local-dev-secret-change-in-production
       - CLIENT_URL=http://localhost:5173
     depends_on:
-      - mongo
+      - postgres
       - redis
       - agents
 
@@ -1354,12 +1183,16 @@ services:
       - SERPAPI_API_KEY=${SERPAPI_API_KEY}
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  mongo:
-    image: mongo:7
+  postgres:
+    image: postgres:16-alpine
     ports:
-      - "27017:27017"
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: productwriter
     volumes:
-      - mongo_data:/data/db
+      - pg_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
@@ -1369,7 +1202,7 @@ services:
       - redis_data:/data
 
 volumes:
-  mongo_data:
+  pg_data:
   redis_data:
 ```
 
@@ -1398,13 +1231,13 @@ volumes:
 │   ├── Controllers: auth, product, generation, billing, user │
 │   ├── Services: agentClient, shopify, stripe, csv, cache    │
 │   ├── Workers: BullMQ generation worker                     │
-│   └── Models: Mongoose (User, Product, Generation, BulkJob) │
+│   └── Models: Drizzle ORM (users, products, generations, bulkJobs) │
 └─────��─┬──────────────┬──────────────┬───────────────────────┘
         │              │              │
         ▼              ▼              ▼
    ┌─────────┐   ┌─────────┐   ┌──────────────────────────┐
-   │ MongoDB  │   │  Redis  │   │  Python Agent Service    │
-   │  :27017  │   │  :6379  │   │  http://localhost:8000   │
+   │PostgreSQL│   │  Redis  │   │  Python Agent Service    │
+   │  :5432   │   │  :6379  │   │  http://localhost:8000   │
    │          │   │         │   │                          │
    │ Users    │   │ Cache   │   │  FastAPI                 │
    │ Products │   │ Sessions│   │  ├── /generate/single    │
@@ -1431,12 +1264,12 @@ volumes:
 2. React → POST /api/generate/single/:productId (Axios with JWT)
 3. Express authMiddleware verifies JWT
 4. Express planLimiter checks usage < limit
-5. Express controller fetches Product from MongoDB
+5. Express controller fetches Product from PostgreSQL
 6. Express agentClient → POST http://agents:8000/generate/single (internal HTTP)
 7. FastAPI receives request → runs LangGraph orchestrator
 8. LangGraph: ProductAnalysis → SEO → Copywriting (+ optional Competitor in parallel)
 9. FastAPI returns GenerationOutput (Pydantic validated)
-10. Express saves Generation document to MongoDB
+10. Express saves Generation record to PostgreSQL
 11. Express increments user.monthlyGenerations
 12. Express returns generation data to React
 13. React TanStack Query caches result, displays variant comparison UI
@@ -1452,7 +1285,7 @@ volumes:
 6. React starts polling GET /api/generate/jobs/:jobId every 2 seconds
 7. BullMQ worker picks up job
 8. Worker iterates: for each productId in job.productIds:
-   a. Fetch product from MongoDB
+   a. Fetch product from PostgreSQL
    b. Call FastAPI /generate/single
    c. Save Generation document
    d. Increment job.completedProducts
@@ -1463,4 +1296,4 @@ volumes:
 
 ---
 
-**This document contains everything needed to build ProductWriter AI from scratch using the MERN + Python agent stack. Start with Phase 1 and iterate.**
+**This document contains everything needed to build ProductWriter AI from scratch using the Express + PostgreSQL + Python agent stack. Start with Phase 1 and iterate.**

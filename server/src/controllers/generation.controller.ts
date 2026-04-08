@@ -1,8 +1,8 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
-import Product from "../models/Product.js";
-import Generation from "../models/Generation.js";
-import BulkJob from "../models/BulkJob.js";
+import { eq, and, desc, inArray, sql } from "drizzle-orm";
+import { db } from "../config/db.js";
+import { products, generations, bulkJobs, type Platform, type Tone } from "../models/schema.js";
 import { logger } from "../utils/logger.js";
 import {
   callGenerateSingle,
@@ -19,11 +19,16 @@ import {
 // POST /api/generate/single/:productId
 export const generateSingle = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!._id;
-    const { productId } = req.params;
+    const userId = req.user!.id;
+    const productId = req.params.productId as string;
 
     // Fetch product
-    const product = await Product.findOne({ _id: productId, userId }).lean();
+    const [product] = await db
+      .select()
+      .from(products)
+      .where(and(eq(products.id, productId), eq(products.userId, userId)))
+      .limit(1);
+
     if (!product) {
       res.status(404).json({ message: "Product not found" });
       return;
@@ -45,7 +50,11 @@ export const generateSingle = async (req: AuthRequest, res: Response) => {
     );
     const cachedId = await getCachedGeneration(cacheKey);
     if (cachedId) {
-      const cached = await Generation.findById(cachedId).lean();
+      const [cached] = await db
+        .select()
+        .from(generations)
+        .where(eq(generations.id, cachedId))
+        .limit(1);
       if (cached) {
         logger.info(`Cache hit for product ${productId}`);
         res.json(cached);
@@ -57,11 +66,11 @@ export const generateSingle = async (req: AuthRequest, res: Response) => {
     const payload: SingleGeneratePayload = {
       product: {
         name: product.name,
-        category: product.category,
+        category: product.category ?? undefined,
         features: product.features || [],
-        price: product.price,
+        price: product.price ? Number(product.price) : undefined,
         currency: product.currency || "USD",
-        brand: product.brand,
+        brand: product.brand ?? undefined,
         images: product.images || [],
         raw_description: undefined,
         raw_data: product.rawData as Record<string, unknown> | undefined,
@@ -78,39 +87,42 @@ export const generateSingle = async (req: AuthRequest, res: Response) => {
     // Cost estimate: ~$0.003 per 1k tokens for gpt-4o-mini, ~$0.01 for gpt-4o
     const costEstimate = result.total_tokens_used * 0.000005;
 
-    // Save Generation document
-    const generation = await Generation.create({
-      userId,
-      productId: product._id,
-      platform,
-      tone,
-      productBrief: result.product_brief as unknown as Record<string, unknown>,
-      seoStrategy: result.seo_strategy as unknown as Record<string, unknown>,
-      competitorAnalysis: (result.competitor_analysis ?? undefined) as unknown as Record<string, unknown> | undefined,
-      variants: result.variants.map((v) => ({
-        variantLabel: v.variant_label,
-        title: v.title,
-        description: v.description,
-        metaTitle: v.meta_title,
-        metaDescription: v.meta_description,
-        keywords: v.keywords,
-        bulletPoints: v.bullet_points,
-        seoScore: v.seo_score,
-        readabilityScore: v.readability_score,
-        wordCount: v.word_count,
-        status: "generated",
-      })),
-      totalTokensUsed: result.total_tokens_used,
-      costEstimate,
-      processingTimeMs: result.processing_time_ms,
-    });
+    // Save Generation record
+    const [generation] = await db
+      .insert(generations)
+      .values({
+        userId,
+        productId: product.id,
+        platform,
+        tone,
+        productBrief: result.product_brief as unknown as Record<string, unknown>,
+        seoStrategy: result.seo_strategy as unknown as Record<string, unknown>,
+        competitorAnalysis: (result.competitor_analysis ?? undefined) as unknown as Record<string, unknown> | undefined,
+        variants: result.variants.map((v) => ({
+          variantLabel: v.variant_label,
+          title: v.title,
+          description: v.description,
+          metaTitle: v.meta_title,
+          metaDescription: v.meta_description,
+          keywords: v.keywords,
+          bulletPoints: v.bullet_points,
+          seoScore: v.seo_score,
+          readabilityScore: v.readability_score,
+          wordCount: v.word_count,
+          status: "generated" as const,
+        })),
+        totalTokensUsed: result.total_tokens_used,
+        costEstimate: String(costEstimate),
+        processingTimeMs: result.processing_time_ms,
+      })
+      .returning();
 
     logger.info(
-      `Generation saved: ${generation._id} for product ${productId} — ${result.total_tokens_used} tokens`
+      `Generation saved: ${generation!.id} for product ${productId} — ${result.total_tokens_used} tokens`
     );
 
     // Cache the generation
-    await setCachedGeneration(cacheKey, String(generation._id));
+    await setCachedGeneration(cacheKey, generation!.id);
 
     res.status(201).json(generation);
   } catch (error: unknown) {
@@ -123,14 +135,16 @@ export const generateSingle = async (req: AuthRequest, res: Response) => {
 // GET /api/generations/:productId
 export const getGenerations = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!._id;
-    const { productId } = req.params;
+    const userId = req.user!.id;
+    const productId = req.params.productId as string;
 
-    const generations = await Generation.find({ userId, productId })
-      .sort({ createdAt: -1 })
-      .lean();
+    const rows = await db
+      .select()
+      .from(generations)
+      .where(and(eq(generations.userId, userId), eq(generations.productId, productId)))
+      .orderBy(desc(generations.createdAt));
 
-    res.json(generations);
+    res.json(rows);
   } catch (error) {
     logger.error("getGenerations error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -140,20 +154,33 @@ export const getGenerations = async (req: AuthRequest, res: Response) => {
 // GET /api/generations/detail/:id
 export const getGenerationDetail = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!._id;
-    const generation = await Generation.findOne({
-      _id: req.params.id,
-      userId,
-    })
-      .populate("productId", "name category brand")
-      .lean();
+    const userId = req.user!.id;
+
+    const [generation] = await db
+      .select({
+        generation: generations,
+        productName: products.name,
+        productCategory: products.category,
+        productBrand: products.brand,
+      })
+      .from(generations)
+      .leftJoin(products, eq(generations.productId, products.id))
+      .where(and(eq(generations.id, req.params.id as string), eq(generations.userId, userId)))
+      .limit(1);
 
     if (!generation) {
       res.status(404).json({ message: "Generation not found" });
       return;
     }
 
-    res.json(generation);
+    res.json({
+      ...generation.generation,
+      product: {
+        name: generation.productName,
+        category: generation.productCategory,
+        brand: generation.productBrand,
+      },
+    });
   } catch (error) {
     logger.error("getGenerationDetail error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -163,31 +190,32 @@ export const getGenerationDetail = async (req: AuthRequest, res: Response) => {
 // POST /api/generate/bulk — create a bulk generation job
 export const generateBulk = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!._id;
+    const userId = req.user!.id;
     const {
-      productIds,
+      productIds: reqProductIds,
       platform = "generic",
       tone = "professional",
       custom_tone_instructions,
       include_competitor_analysis = false,
     } = req.body;
 
-    if (!Array.isArray(productIds) || productIds.length === 0) {
+    if (!Array.isArray(reqProductIds) || reqProductIds.length === 0) {
       res.status(400).json({ message: "productIds array is required" });
       return;
     }
 
-    if (productIds.length > 500) {
+    if (reqProductIds.length > 500) {
       res.status(400).json({ message: "Maximum 500 products per bulk job" });
       return;
     }
 
     // Verify all products belong to user
-    const count = await Product.countDocuments({
-      _id: { $in: productIds },
-      userId,
-    });
-    if (count !== productIds.length) {
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(products)
+      .where(and(inArray(products.id, reqProductIds), eq(products.userId, userId)));
+
+    if ((countRow?.count ?? 0) !== reqProductIds.length) {
       res
         .status(400)
         .json({ message: "Some product IDs are invalid or not owned by you" });
@@ -195,14 +223,17 @@ export const generateBulk = async (req: AuthRequest, res: Response) => {
     }
 
     // Create BulkJob
-    const bulkJob = await BulkJob.create({
-      userId,
-      platform,
-      tone,
-      includeCompetitor: include_competitor_analysis,
-      productIds,
-      totalProducts: productIds.length,
-    });
+    const [bulkJob] = await db
+      .insert(bulkJobs)
+      .values({
+        userId,
+        platform: platform as Platform,
+        tone: tone as Tone,
+        includeCompetitor: include_competitor_analysis,
+        productIds: reqProductIds,
+        totalProducts: reqProductIds.length,
+      })
+      .returning();
 
     // Add to BullMQ queue
     if (!generationQueue) {
@@ -211,19 +242,19 @@ export const generateBulk = async (req: AuthRequest, res: Response) => {
     }
 
     const jobData: BulkJobData = {
-      bulkJobId: String(bulkJob._id),
-      userId: String(userId),
-      productIds,
+      bulkJobId: bulkJob!.id,
+      userId,
+      productIds: reqProductIds,
       platform,
       tone,
       customToneInstructions: custom_tone_instructions,
       includeCompetitor: include_competitor_analysis,
     };
 
-    await generationQueue.add(`bulk-${bulkJob._id}`, jobData);
+    await generationQueue.add(`bulk-${bulkJob!.id}`, jobData);
 
     logger.info(
-      `Bulk job ${bulkJob._id} queued: ${productIds.length} products`
+      `Bulk job ${bulkJob!.id} queued: ${reqProductIds.length} products`
     );
 
     res.status(201).json(bulkJob);
@@ -236,11 +267,12 @@ export const generateBulk = async (req: AuthRequest, res: Response) => {
 // GET /api/generate/jobs/:jobId — get bulk job status / progress
 export const getJobStatus = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!._id;
-    const job = await BulkJob.findOne({
-      _id: req.params.jobId,
-      userId,
-    }).lean();
+    const userId = req.user!.id;
+    const [job] = await db
+      .select()
+      .from(bulkJobs)
+      .where(and(eq(bulkJobs.id, req.params.jobId as string), eq(bulkJobs.userId, userId)))
+      .limit(1);
 
     if (!job) {
       res.status(404).json({ message: "Job not found" });
@@ -257,11 +289,13 @@ export const getJobStatus = async (req: AuthRequest, res: Response) => {
 // GET /api/generate/jobs — list user's bulk jobs
 export const listJobs = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!._id;
-    const jobs = await BulkJob.find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
+    const userId = req.user!.id;
+    const jobs = await db
+      .select()
+      .from(bulkJobs)
+      .where(eq(bulkJobs.userId, userId))
+      .orderBy(desc(bulkJobs.createdAt))
+      .limit(50);
 
     res.json(jobs);
   } catch (error) {
@@ -273,7 +307,7 @@ export const listJobs = async (req: AuthRequest, res: Response) => {
 // POST /api/generations/export — export generations as CSV or JSON
 export const exportGenerations = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!._id;
+    const userId = req.user!.id;
     const { generationIds, format = "csv" } = req.body;
 
     if (!Array.isArray(generationIds) || generationIds.length === 0) {
@@ -281,12 +315,14 @@ export const exportGenerations = async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const generations = await Generation.find({
-      _id: { $in: generationIds },
-      userId,
-    })
-      .populate("productId", "name category brand")
-      .lean();
+    const rows = await db
+      .select({
+        generation: generations,
+        productName: products.name,
+      })
+      .from(generations)
+      .leftJoin(products, eq(generations.productId, products.id))
+      .where(and(inArray(generations.id, generationIds), eq(generations.userId, userId)));
 
     if (format === "json") {
       res.setHeader("Content-Type", "application/json");
@@ -294,13 +330,13 @@ export const exportGenerations = async (req: AuthRequest, res: Response) => {
         "Content-Disposition",
         "attachment; filename=generations.json"
       );
-      res.json(generations);
+      res.json(rows.map((r) => ({ ...r.generation, productName: r.productName })));
       return;
     }
 
     // CSV format
-    const rows: string[] = [];
-    rows.push(
+    const csvRows: string[] = [];
+    csvRows.push(
       [
         "Product Name",
         "Platform",
@@ -318,16 +354,12 @@ export const exportGenerations = async (req: AuthRequest, res: Response) => {
       ].join(",")
     );
 
-    for (const gen of generations) {
-      const productName =
-        typeof gen.productId === "object" &&
-        gen.productId !== null &&
-        "name" in gen.productId
-          ? (gen.productId as { name: string }).name
-          : String(gen.productId);
+    for (const row of rows) {
+      const gen = row.generation;
+      const productName = row.productName ?? "Unknown";
 
       for (const v of gen.variants) {
-        rows.push(
+        csvRows.push(
           [
             csvEscape(productName),
             gen.platform,
@@ -352,7 +384,7 @@ export const exportGenerations = async (req: AuthRequest, res: Response) => {
       "Content-Disposition",
       "attachment; filename=generations.csv"
     );
-    res.send(rows.join("\n"));
+    res.send(csvRows.join("\n"));
   } catch (error) {
     logger.error("exportGenerations error:", error);
     res.status(500).json({ message: "Export failed" });

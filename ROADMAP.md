@@ -5,16 +5,16 @@
 - [x] Initialize client: `npm create vite@latest client -- --template react-ts`
 - [x] Initialize server: Express + TypeScript boilerplate
 - [x] Initialize agents: FastAPI project structure
-- [x] Set up Docker Compose (mongo, redis, server, client, agents)
+- [x] Set up Docker Compose (postgres, redis, server, client, agents)
 - [x] Set up TailwindCSS + ShadCN/UI in client
-- [x] Configure Mongoose connection + models (User, Product, Generation, BulkJob)
+- [x] Configure Drizzle ORM connection + schema (User, Product, Generation, BulkJob)
 - [x] Implement auth: register, login, JWT access/refresh tokens
 - [x] Implement Passport.js local strategy + Google OAuth
 - [x] Build auth pages in React: Login, Register, Forgot Password
 - [x] Build dashboard layout: Sidebar, Header, routing with React Router
 - [x] Set up Axios instance with auth interceptors
 - [x] Set up GitHub Actions CI (lint, type-check, build for client + server)
-- [x] Seed script: insert 50 sample products into MongoDB
+- [x] Seed script: insert 50 sample products into PostgreSQL
 
 ## Phase 2: Product Data Pipeline (Week 2) — March 17–23
 **Goal: Full product CRUD, CSV import, Shopify sync**
@@ -41,7 +41,7 @@
 - [ ] Build LangGraph orchestrator: wire all 4 agents with conditional edges
 - [ ] Expose `/generate/single` endpoint in FastAPI
 - [ ] Build `agentClient.ts` in Express: HTTP client to call FastAPI service
-- [ ] Wire Express route `POST /api/generate/single/:productId` → calls FastAPI → saves Generation to MongoDB
+- [ ] Wire Express route `POST /api/generate/single/:productId` → calls FastAPI → saves Generation to PostgreSQL
 - [ ] Build generation results page in React: variant cards, side-by-side comparison
 - [ ] Implement SEO score badge + readability score display
 
@@ -84,7 +84,7 @@
 ## Phase 6: Testing, Deployment & Launch (Week 6) — April 14–20
 **Goal: Production-deployed, tested, first beta users**
 - [ ] Write unit tests for Express controllers (Jest + Supertest)
-- [ ] Write unit tests for Mongoose model validations
+- [ ] Write unit tests for Drizzle schema validations
 - [ ] Write integration tests for auth flow, product CRUD, generation flow
 - [ ] Write E2E tests for core flows (Playwright): register → import CSV → generate → view results → export
 - [ ] Write pytest tests for each Python agent (mock LLM responses)
@@ -93,7 +93,7 @@
 - [ ] Deploy React SPA to Vercel or Netlify
 - [ ] Deploy Express API to Railway or Render
 - [ ] Deploy Python agent service to Railway or Render (separate service)
-- [ ] Set up MongoDB Atlas (free M0 tier or M10 for production)
+- [ ] Set up managed PostgreSQL (Neon, Supabase, or Railway Postgres)
 - [ ] Set up Upstash Redis
 - [ ] Configure environment variables in all deployment platforms
 - [ ] Set up custom domain + SSL (Cloudflare)

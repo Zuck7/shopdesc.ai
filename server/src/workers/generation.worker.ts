@@ -1,9 +1,9 @@
 import { Worker, type Job } from "bullmq";
+import { eq, and } from "drizzle-orm";
 import { redis } from "../config/redis.js";
 import { logger } from "../utils/logger.js";
-import Product from "../models/Product.js";
-import Generation from "../models/Generation.js";
-import BulkJob from "../models/BulkJob.js";
+import { db } from "../config/db.js";
+import { products, generations, bulkJobs, type Platform, type Tone } from "../models/schema.js";
 import {
   callGenerateSingle,
   type SingleGeneratePayload,
@@ -35,20 +35,21 @@ async function processBulkGeneration(job: Job<BulkJobData>) {
   );
 
   // Mark job as processing
-  await BulkJob.findByIdAndUpdate(bulkJobId, {
-    status: "processing",
-    startedAt: new Date(),
-  });
+  await db
+    .update(bulkJobs)
+    .set({ status: "processing", startedAt: new Date() })
+    .where(eq(bulkJobs.id, bulkJobId));
 
   let completed = 0;
   let failed = 0;
 
   for (const productId of productIds) {
     try {
-      const product = await Product.findOne({
-        _id: productId,
-        userId,
-      }).lean();
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(and(eq(products.id, productId), eq(products.userId, userId)))
+        .limit(1);
       if (!product) {
         failed++;
         continue;
@@ -57,11 +58,11 @@ async function processBulkGeneration(job: Job<BulkJobData>) {
       const payload: SingleGeneratePayload = {
         product: {
           name: product.name,
-          category: product.category,
+          category: product.category ?? undefined,
           features: product.features || [],
-          price: product.price,
+          price: product.price ? Number(product.price) : undefined,
           currency: product.currency || "USD",
-          brand: product.brand,
+          brand: product.brand ?? undefined,
           images: product.images || [],
           raw_description: undefined,
           raw_data: product.rawData as Record<string, unknown> | undefined,
@@ -76,12 +77,12 @@ async function processBulkGeneration(job: Job<BulkJobData>) {
 
       const costEstimate = result.total_tokens_used * 0.000005;
 
-      await Generation.create({
+      await db.insert(generations).values({
         userId,
-        productId: product._id,
+        productId: product.id,
         jobId: bulkJobId,
-        platform,
-        tone,
+        platform: platform as Platform,
+        tone: tone as Tone,
         productBrief: result.product_brief as unknown as Record<
           string,
           unknown
@@ -91,7 +92,7 @@ async function processBulkGeneration(job: Job<BulkJobData>) {
           unknown
         >,
         competitorAnalysis: (result.competitor_analysis ??
-          undefined) as unknown as Record<string, unknown> | undefined,
+          null) as Record<string, unknown> | null,
         variants: result.variants.map((v) => ({
           variantLabel: v.variant_label,
           title: v.title,
@@ -106,7 +107,7 @@ async function processBulkGeneration(job: Job<BulkJobData>) {
           status: "generated" as const,
         })),
         totalTokensUsed: result.total_tokens_used,
-        costEstimate,
+        costEstimate: String(costEstimate),
         processingTimeMs: result.processing_time_ms,
       });
 
@@ -120,10 +121,10 @@ async function processBulkGeneration(job: Job<BulkJobData>) {
     }
 
     // Update progress after each product
-    await BulkJob.findByIdAndUpdate(bulkJobId, {
-      completedProducts: completed,
-      failedProducts: failed,
-    });
+    await db
+      .update(bulkJobs)
+      .set({ completedProducts: completed, failedProducts: failed })
+      .where(eq(bulkJobs.id, bulkJobId));
 
     // Report BullMQ progress for consumers
     await job.updateProgress(
@@ -137,12 +138,15 @@ async function processBulkGeneration(job: Job<BulkJobData>) {
       ? "failed"
       : "completed";
 
-  await BulkJob.findByIdAndUpdate(bulkJobId, {
-    status: finalStatus,
-    completedProducts: completed,
-    failedProducts: failed,
-    completedAt: new Date(),
-  });
+  await db
+    .update(bulkJobs)
+    .set({
+      status: finalStatus,
+      completedProducts: completed,
+      failedProducts: failed,
+      completedAt: new Date(),
+    })
+    .where(eq(bulkJobs.id, bulkJobId));
 
   logger.info(
     `Bulk job ${bulkJobId} done: ${completed} completed, ${failed} failed`

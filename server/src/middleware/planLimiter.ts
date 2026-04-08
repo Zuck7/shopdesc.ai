@@ -1,6 +1,8 @@
 import type { Response, NextFunction } from "express";
 import type { AuthRequest } from "./auth.js";
-import User from "../models/User.js";
+import { eq } from "drizzle-orm";
+import { db } from "../config/db.js";
+import { users } from "../models/schema.js";
 
 /**
  * Middleware that checks whether the user has remaining generation quota.
@@ -22,12 +24,13 @@ export const planLimiter = async (
       nextReset.setDate(1);
       nextReset.setHours(0, 0, 0, 0);
 
+      await db
+        .update(users)
+        .set({ monthlyGenerations: 0, usageResetDate: nextReset })
+        .where(eq(users.id, user.id));
+
       user.monthlyGenerations = 0;
       user.usageResetDate = nextReset;
-      await User.findByIdAndUpdate(user._id, {
-        monthlyGenerations: 0,
-        usageResetDate: nextReset,
-      });
     }
 
     if (user.monthlyGenerations >= user.generationLimit) {

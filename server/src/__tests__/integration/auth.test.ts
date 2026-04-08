@@ -116,7 +116,7 @@ describe("Auth API", () => {
 
       const cookies = res.headers["set-cookie"];
       expect(cookies).toBeDefined();
-      expect(cookies.toString()).toContain("refreshToken");
+      expect(cookies!.toString()).toContain("refreshToken");
     });
   });
 
@@ -163,7 +163,7 @@ describe("Auth API", () => {
 
       const res = await request(app)
         .post("/api/auth/refresh")
-        .set("Cookie", cookies);
+        .set("Cookie", cookies!);
 
       expect(res.status).toBe(200);
       expect(res.body.accessToken).toBeDefined();

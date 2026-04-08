@@ -1,10 +1,10 @@
 import request from "supertest";
-import mongoose from "mongoose";
+import crypto from "crypto";
 import { app } from "../../app.js";
 import { connectTestDB, disconnectTestDB, clearTestDB } from "../setup.js";
 import { createAuthenticatedUser } from "../helpers.js";
-import Product from "../../models/Product.js";
-import Generation from "../../models/Generation.js";
+import { db } from "../../config/db.js";
+import { products, generations } from "../../models/schema.js";
 
 beforeAll(async () => await connectTestDB());
 afterAll(async () => await disconnectTestDB());
@@ -20,6 +20,7 @@ function makeVariant(label: string) {
     seoScore: 75,
     readabilityScore: 80,
     wordCount: 10,
+    status: "generated" as const,
   };
 }
 
@@ -27,28 +28,28 @@ describe("Generations API", () => {
   describe("GET /api/generations/:productId", () => {
     it("should list generations for a product", async () => {
       const { user, token } = await createAuthenticatedUser();
-      const product = await Product.create({
-        userId: user._id,
-        name: "Test Product",
-      });
+      const [product] = await db
+        .insert(products)
+        .values({ userId: user.id, name: "Test Product" })
+        .returning();
 
-      await Generation.create([
+      await db.insert(generations).values([
         {
-          userId: user._id,
-          productId: product._id,
+          userId: user.id,
+          productId: product!.id,
           platform: "shopify",
           variants: [makeVariant("A")],
         },
         {
-          userId: user._id,
-          productId: product._id,
+          userId: user.id,
+          productId: product!.id,
           platform: "amazon",
           variants: [makeVariant("A"), makeVariant("B")],
         },
       ]);
 
       const res = await request(app)
-        .get(`/api/generations/${product._id}`)
+        .get(`/api/generations/${product!.id}`)
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -57,20 +58,21 @@ describe("Generations API", () => {
 
     it("should not list generations for another users product", async () => {
       const { token } = await createAuthenticatedUser();
-      const otherUserId = new mongoose.Types.ObjectId();
-      const product = await Product.create({
-        userId: otherUserId,
-        name: "Other Product",
-      });
+      // Create another user and their product
+      const { user: otherUser } = await createAuthenticatedUser({ email: "other@test.com" });
+      const [product] = await db
+        .insert(products)
+        .values({ userId: otherUser.id, name: "Other Product" })
+        .returning();
 
-      await Generation.create({
-        userId: otherUserId,
-        productId: product._id,
+      await db.insert(generations).values({
+        userId: otherUser.id,
+        productId: product!.id,
         variants: [makeVariant("A")],
       });
 
       const res = await request(app)
-        .get(`/api/generations/${product._id}`)
+        .get(`/api/generations/${product!.id}`)
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -81,24 +83,27 @@ describe("Generations API", () => {
   describe("GET /api/generations/detail/:id", () => {
     it("should return a single generation with detail", async () => {
       const { user, token } = await createAuthenticatedUser();
-      const product = await Product.create({
-        userId: user._id,
-        name: "Detail Product",
-      });
+      const [product] = await db
+        .insert(products)
+        .values({ userId: user.id, name: "Detail Product" })
+        .returning();
 
-      const gen = await Generation.create({
-        userId: user._id,
-        productId: product._id,
-        platform: "shopify",
-        tone: "professional",
-        variants: [makeVariant("A"), makeVariant("B"), makeVariant("C")],
-        totalTokensUsed: 1000,
-        costEstimate: 0.05,
-        processingTimeMs: 5000,
-      });
+      const [gen] = await db
+        .insert(generations)
+        .values({
+          userId: user.id,
+          productId: product!.id,
+          platform: "shopify",
+          tone: "professional",
+          variants: [makeVariant("A"), makeVariant("B"), makeVariant("C")],
+          totalTokensUsed: 1000,
+          costEstimate: "0.05",
+          processingTimeMs: 5000,
+        })
+        .returning();
 
       const res = await request(app)
-        .get(`/api/generations/detail/${gen._id}`)
+        .get(`/api/generations/detail/${gen!.id}`)
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -109,7 +114,7 @@ describe("Generations API", () => {
 
     it("should return 404 for non-existent generation", async () => {
       const { token } = await createAuthenticatedUser();
-      const fakeId = new mongoose.Types.ObjectId();
+      const fakeId = crypto.randomUUID();
 
       const res = await request(app)
         .get(`/api/generations/detail/${fakeId}`)
@@ -240,13 +245,16 @@ describe("User API", () => {
     it("should return analytics data", async () => {
       const { user, token } = await createAuthenticatedUser();
 
-      await Product.create({ userId: user._id, name: "Analytics Product" });
-      await Generation.create({
-        userId: user._id,
-        productId: new mongoose.Types.ObjectId(),
+      const [product] = await db
+        .insert(products)
+        .values({ userId: user.id, name: "Analytics Product" })
+        .returning();
+      await db.insert(generations).values({
+        userId: user.id,
+        productId: product!.id,
         platform: "shopify",
         variants: [makeVariant("A")],
-        costEstimate: 0.05,
+        costEstimate: "0.05",
       });
 
       const res = await request(app)

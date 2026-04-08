@@ -39,11 +39,11 @@ router.get(
   }),
   (req, res) => {
     const user = req.user as any;
-    const accessToken = jwt.sign({ userId: user._id }, env.JWT_SECRET, {
+    const accessToken = jwt.sign({ userId: user.id }, env.JWT_SECRET, {
       expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"],
     });
     const refreshTkn = jwt.sign(
-      { userId: user._id },
+      { userId: user.id },
       env.JWT_REFRESH_SECRET,
       { expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions["expiresIn"] }
     );

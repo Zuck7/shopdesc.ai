@@ -1,8 +1,10 @@
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { eq } from "drizzle-orm";
 import { env } from "../config/env.js";
-import User from "../models/User.js";
+import { db } from "../config/db.js";
+import { users } from "../models/schema.js";
 import { logger } from "../utils/logger.js";
 
 const generateTokens = (userId: string) => {
@@ -23,7 +25,12 @@ export const register = async (req: Request, res: Response) => {
       password: string;
     };
 
-    const existingUser = await User.findOne({ email });
+    const [existingUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()))
+      .limit(1);
+
     if (existingUser) {
       res.status(409).json({ message: "Email already registered" });
       return;
@@ -31,15 +38,12 @@ export const register = async (req: Request, res: Response) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const user = await User.create({
-      name,
-      email,
-      passwordHash,
-    });
+    const [user] = await db
+      .insert(users)
+      .values({ name, email: email.toLowerCase(), passwordHash })
+      .returning({ id: users.id, name: users.name, email: users.email, plan: users.plan });
 
-    const { accessToken, refreshToken } = generateTokens(
-      user._id.toString()
-    );
+    const { accessToken, refreshToken } = generateTokens(user!.id);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -50,10 +54,10 @@ export const register = async (req: Request, res: Response) => {
 
     res.status(201).json({
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        plan: user.plan,
+        id: user!.id,
+        name: user!.name,
+        email: user!.email,
+        plan: user!.plan,
       },
       accessToken,
     });
@@ -70,7 +74,12 @@ export const login = async (req: Request, res: Response) => {
       password: string;
     };
 
-    const user = await User.findOne({ email });
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()))
+      .limit(1);
+
     if (!user || !user.passwordHash) {
       res.status(401).json({ message: "Invalid credentials" });
       return;
@@ -82,9 +91,7 @@ export const login = async (req: Request, res: Response) => {
       return;
     }
 
-    const { accessToken, refreshToken } = generateTokens(
-      user._id.toString()
-    );
+    const { accessToken, refreshToken } = generateTokens(user.id);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -95,7 +102,7 @@ export const login = async (req: Request, res: Response) => {
 
     res.json({
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         plan: user.plan,
@@ -120,13 +127,18 @@ export const refreshToken = async (req: Request, res: Response) => {
       userId: string;
     };
 
-    const user = await User.findById(decoded.userId);
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, decoded.userId))
+      .limit(1);
+
     if (!user) {
       res.status(401).json({ message: "User not found" });
       return;
     }
 
-    const tokens = generateTokens(user._id.toString());
+    const tokens = generateTokens(user.id);
 
     res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
@@ -157,20 +169,25 @@ export const getMe = async (req: Request, res: Response) => {
     const token = authHeader.split(" ")[1]!;
     const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string };
 
-    const user = await User.findById(decoded.userId).select("-passwordHash");
+    const [user] = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        plan: users.plan,
+        monthlyGenerations: users.monthlyGenerations,
+        generationLimit: users.generationLimit,
+      })
+      .from(users)
+      .where(eq(users.id, decoded.userId))
+      .limit(1);
+
     if (!user) {
       res.status(401).json({ message: "User not found" });
       return;
     }
 
-    res.json({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      plan: user.plan,
-      monthlyGenerations: user.monthlyGenerations,
-      generationLimit: user.generationLimit,
-    });
+    res.json(user);
   } catch {
     res.status(401).json({ message: "Invalid token" });
   }

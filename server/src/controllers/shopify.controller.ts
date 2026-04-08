@@ -29,8 +29,10 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
+import { eq } from "drizzle-orm";
 import { env } from "../config/env.js";
-import User from "../models/User.js";
+import { db } from "../config/db.js";
+import { users } from "../models/schema.js";
 import { logger } from "../utils/logger.js";
 import {
   validateShopDomain,
@@ -82,7 +84,7 @@ export const preauth = (req: AuthRequest, res: Response): void => {
   // The httpOnly flag keeps it invisible to client-side JS (XSS protection).
   // The signature prevents tampering (forgery protection).
   const cookieToken = jwt.sign(
-    { nonce, userId: String(req.user!._id), shop } satisfies ShopifyAuthCookiePayload,
+    { nonce, userId: req.user!.id, shop } satisfies ShopifyAuthCookiePayload,
     env.JWT_SECRET,
     { expiresIn: "10m" }
   );
@@ -146,11 +148,11 @@ export const handleCallback = async (req: Request, res: Response): Promise<void>
     const accessToken = await exchangeToken(shop, code!);
 
     // ── 6. Persist Shopify credentials on the user record ───────────────────
-    const updated = await User.findByIdAndUpdate(
-      cookiePayload.userId,
-      { shopifyDomain: shop, shopifyAccessToken: accessToken },
-      { new: true }
-    );
+    const [updated] = await db
+      .update(users)
+      .set({ shopifyDomain: shop, shopifyAccessToken: accessToken, updatedAt: new Date() })
+      .where(eq(users.id, cookiePayload.userId))
+      .returning({ id: users.id });
 
     if (!updated) { fail("user_not_found"); return; }
 

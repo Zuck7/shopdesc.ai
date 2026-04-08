@@ -1,7 +1,9 @@
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
+import { eq } from "drizzle-orm";
 import { env } from "../config/env.js";
-import User from "../models/User.js";
+import { db } from "../config/db.js";
+import { users } from "../models/schema.js";
 import { logger } from "../utils/logger.js";
 
 const PLANS = [
@@ -88,10 +90,10 @@ export const createCheckoutSession = async (
       const customer = await stripe.customers.create({
         email: user.email,
         name: user.name,
-        metadata: { userId: user._id.toString() },
+        metadata: { userId: user.id },
       });
       customerId = customer.id;
-      await User.findByIdAndUpdate(user._id, { stripeCustomerId: customerId });
+      await db.update(users).set({ stripeCustomerId: customerId }).where(eq(users.id, user.id));
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -184,28 +186,22 @@ export const handleWebhook = async (req: Request, res: Response) => {
 
         const plan = PLANS.find((p) => p.stripePriceId === priceId);
         if (plan) {
-          await User.findOneAndUpdate(
-            { stripeCustomerId: customerId },
-            {
-              plan: plan.name,
-              generationLimit: plan.limit,
-              stripeSubscriptionId: subscriptionId,
-            }
-          );
+          await db.update(users).set({
+            plan: plan.name as typeof users.$inferInsert.plan,
+            generationLimit: plan.limit,
+            stripeSubscriptionId: subscriptionId,
+          }).where(eq(users.stripeCustomerId, customerId));
         }
         break;
       }
 
       case "customer.subscription.deleted": {
         const sub = event.data.object;
-        await User.findOneAndUpdate(
-          { stripeSubscriptionId: sub.id },
-          {
-            plan: "free",
-            generationLimit: 5,
-            stripeSubscriptionId: undefined,
-          }
-        );
+        await db.update(users).set({
+          plan: "free",
+          generationLimit: 5,
+          stripeSubscriptionId: null,
+        }).where(eq(users.stripeSubscriptionId, sub.id));
         break;
       }
     }

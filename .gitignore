@@ -29,7 +29,7 @@ Thumbs.db
 logs/
 
 # Docker volumes (local)
-mongo-data/
+pg-data/
 redis-data/
 
 # Testing

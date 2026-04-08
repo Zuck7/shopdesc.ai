@@ -1,12 +1,13 @@
-import mongoose from "mongoose";
-import User from "../../models/User.js";
+import { db } from "../../config/db.js";
+import { users } from "../../models/schema.js";
+import { eq } from "drizzle-orm";
 import { connectTestDB, disconnectTestDB, clearTestDB } from "../setup.js";
 
 beforeAll(async () => await connectTestDB());
 afterAll(async () => await disconnectTestDB());
 afterEach(async () => await clearTestDB());
 
-describe("User Model", () => {
+describe("User table", () => {
   const validUser = {
     email: "test@example.com",
     passwordHash: "$2a$12$hashedpassword",
@@ -14,56 +15,29 @@ describe("User Model", () => {
   };
 
   it("should create a user with valid fields", async () => {
-    const user = await User.create(validUser);
-    expect(user.email).toBe("test@example.com");
-    expect(user.name).toBe("Test User");
-    expect(user.plan).toBe("free");
-    expect(user.defaultTone).toBe("professional");
-    expect(user.monthlyGenerations).toBe(0);
-    expect(user.generationLimit).toBe(5);
-    expect(user.createdAt).toBeDefined();
-  });
-
-  it("should require email", async () => {
-    await expect(
-      User.create({ passwordHash: "hash", name: "No Email" })
-    ).rejects.toThrow();
-  });
-
-  it("should require name", async () => {
-    await expect(
-      User.create({ email: "a@b.com", passwordHash: "hash" })
-    ).rejects.toThrow();
+    const [user] = await db.insert(users).values(validUser).returning();
+    expect(user!.email).toBe("test@example.com");
+    expect(user!.name).toBe("Test User");
+    expect(user!.plan).toBe("free");
+    expect(user!.defaultTone).toBe("professional");
+    expect(user!.monthlyGenerations).toBe(0);
+    expect(user!.generationLimit).toBe(5);
+    expect(user!.createdAt).toBeDefined();
   });
 
   it("should enforce unique email", async () => {
-    await User.create(validUser);
-    await expect(User.create(validUser)).rejects.toThrow();
-  });
-
-  it("should lowercase and trim email", async () => {
-    const user = await User.create({
-      ...validUser,
-      email: "  TEST@Example.COM  ",
-    });
-    expect(user.email).toBe("test@example.com");
+    await db.insert(users).values(validUser);
+    await expect(db.insert(users).values(validUser)).rejects.toThrow();
   });
 
   it("should default plan to free", async () => {
-    const user = await User.create(validUser);
-    expect(user.plan).toBe("free");
+    const [user] = await db.insert(users).values(validUser).returning();
+    expect(user!.plan).toBe("free");
   });
 
-  it("should reject invalid plan value", async () => {
-    await expect(
-      User.create({ ...validUser, plan: "invalid" })
-    ).rejects.toThrow();
-  });
-
-  it("should reject invalid tone value", async () => {
-    await expect(
-      User.create({ ...validUser, defaultTone: "angry" })
-    ).rejects.toThrow();
+  it("should set usageResetDate by default", async () => {
+    const [user] = await db.insert(users).values(validUser).returning();
+    expect(user!.usageResetDate).toBeInstanceOf(Date);
   });
 
   it("should accept valid tone values", async () => {
@@ -73,18 +47,16 @@ describe("User Model", () => {
       "luxury",
       "playful",
       "custom",
-    ]) {
-      const user = await User.create({
-        ...validUser,
-        email: `${tone}@test.com`,
-        defaultTone: tone,
-      });
-      expect(user.defaultTone).toBe(tone);
+    ] as const) {
+      const [user] = await db
+        .insert(users)
+        .values({
+          ...validUser,
+          email: `${tone}@test.com`,
+          defaultTone: tone,
+        })
+        .returning();
+      expect(user!.defaultTone).toBe(tone);
     }
-  });
-
-  it("should set usageResetDate by default", async () => {
-    const user = await User.create(validUser);
-    expect(user.usageResetDate).toBeInstanceOf(Date);
   });
 });

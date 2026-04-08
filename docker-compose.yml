@@ -1,31 +1,22 @@
 services:
-  mongo:
-    image: mongo:7
+  postgres:
+    image: postgres:16-alpine
     ports:
-      - "27017:27017"
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: productwriter
     volumes:
-      - mongo-data:/data/db
+      - pg-data:/var/lib/postgresql/data
     networks:
       - productwriter
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
-
-  mongo-express:
-    image: mongo-express:latest
-    ports:
-      - "8081:8081"
-    environment:
-      ME_CONFIG_MONGODB_SERVER: mongo
-      ME_CONFIG_BASICAUTH: "false"
-    depends_on:
-      mongo:
-        condition: service_healthy
-    networks:
-      - productwriter
 
   redis:
     image: redis:7-alpine
@@ -49,7 +40,7 @@ services:
       - "5000:5000"
     env_file: .env
     depends_on:
-      mongo:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -89,7 +80,7 @@ services:
       - productwriter
 
 volumes:
-  mongo-data:
+  pg-data:
   redis-data:
 
 networks:

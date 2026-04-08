@@ -1,8 +1,7 @@
 import "dotenv/config";
-import mongoose from "mongoose";
-import Product from "../models/Product.js";
-import User from "../models/User.js";
-import { env } from "../config/env.js";
+import { eq } from "drizzle-orm";
+import { connectDB, db, getPool } from "../config/db.js";
+import { users, products as productsTable } from "../models/schema.js";
 
 const categories = [
   "Electronics",
@@ -71,40 +70,51 @@ const products = [
 ];
 
 async function seed() {
-  await mongoose.connect(env.MONGO_URI);
-  console.log("Connected to MongoDB");
+  await connectDB();
+  console.log("Connected to PostgreSQL");
 
   // Create a seed user
-  let user = await User.findOne({ email: "seed@shopdesc.ai" });
+  let [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, "seed@shopdesc.ai"))
+    .limit(1);
   if (!user) {
-    user = await User.create({
-      name: "Seed User",
-      email: "seed@shopdesc.ai",
-      passwordHash: "not-a-real-hash",
-    });
+    [user] = await db
+      .insert(users)
+      .values({
+        name: "Seed User",
+        email: "seed@shopdesc.ai",
+        passwordHash: "not-a-real-hash",
+      })
+      .returning();
     console.log("Created seed user");
   }
 
+  if (!user) {
+    throw new Error("Failed to create or find seed user");
+  }
+
   // Clear existing seed products
-  await Product.deleteMany({ userId: user._id });
+  await db.delete(productsTable).where(eq(productsTable.userId, user.id));
 
   const docs = products.map((p) => ({
-    userId: user._id,
+    userId: user.id,
     source: "manual" as const,
     name: p.name,
     category: p.category,
     features: p.features,
     benefits: p.benefits,
-    price: p.price,
+    price: String(p.price),
     currency: "USD",
-    images: [],
+    images: [] as string[],
     tags: p.tags,
   }));
 
-  await Product.insertMany(docs);
+  await db.insert(productsTable).values(docs);
   console.log(`Inserted ${docs.length} sample products`);
 
-  await mongoose.disconnect();
+  await getPool().end();
   console.log("Done");
 }
 

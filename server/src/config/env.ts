@@ -5,7 +5,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(5000),
 
   // Database
-  MONGO_URI: z.string().default("mongodb://localhost:27017/productwriter"),
+  DATABASE_URL: z.string().default("postgresql://postgres:postgres@localhost:5432/productwriter"),
   REDIS_URL: z.string().optional(),
 
   // JWT

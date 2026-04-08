@@ -15,6 +15,6 @@ Upload product data (CSV, Shopify sync, or manual entry) → 4 specialized AI ag
 | Layer | Stack |
 |-------|-------|
 | Frontend | React, Vite, TypeScript, TailwindCSS, ShadCN/UI |
-| Backend | Express, TypeScript, MongoDB, Redis, BullMQ |
+| Backend | Express, TypeScript, PostgreSQL, Drizzle ORM, Redis, BullMQ |
 | AI Agents | Python, FastAPI, LangGraph, LangChain, GPT-4o |
 | Infra | Docker Compose, GitHub Actions |

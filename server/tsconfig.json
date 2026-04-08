@@ -4,7 +4,7 @@
     "outDir": "./dist",
     "module": "nodenext",
     "target": "ES2022",
-    "types": ["node"],
+    "types": ["node", "vitest/globals"],
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,

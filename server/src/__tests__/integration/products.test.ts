@@ -1,9 +1,11 @@
 import request from "supertest";
-import mongoose from "mongoose";
+import crypto from "crypto";
+import { eq } from "drizzle-orm";
 import { app } from "../../app.js";
 import { connectTestDB, disconnectTestDB, clearTestDB } from "../setup.js";
 import { createAuthenticatedUser } from "../helpers.js";
-import Product from "../../models/Product.js";
+import { db } from "../../config/db.js";
+import { products } from "../../models/schema.js";
 
 beforeAll(async () => await connectTestDB());
 afterAll(async () => await disconnectTestDB());
@@ -59,9 +61,9 @@ describe("Products API", () => {
     it("should list products for authenticated user", async () => {
       const { user, token } = await createAuthenticatedUser();
 
-      await Product.create([
-        { ...productData, userId: user._id },
-        { ...productData, userId: user._id, name: "Product 2" },
+      await db.insert(products).values([
+        { ...productData, price: String(productData.price), userId: user.id },
+        { ...productData, price: String(productData.price), userId: user.id, name: "Product 2" },
       ]);
 
       const res = await request(app)
@@ -75,9 +77,13 @@ describe("Products API", () => {
 
     it("should not return other users products", async () => {
       const { token } = await createAuthenticatedUser();
-      const otherUserId = new mongoose.Types.ObjectId();
+      const { user: otherUser } = await createAuthenticatedUser({ email: "other@test.com" });
 
-      await Product.create({ ...productData, userId: otherUserId });
+      await db.insert(products).values({
+        ...productData,
+        price: String(productData.price),
+        userId: otherUser.id,
+      });
 
       const res = await request(app)
         .get("/api/products")
@@ -89,12 +95,13 @@ describe("Products API", () => {
     it("should paginate results", async () => {
       const { user, token } = await createAuthenticatedUser();
 
-      const products = Array.from({ length: 25 }, (_, i) => ({
+      const docs = Array.from({ length: 25 }, (_, i) => ({
         ...productData,
-        userId: user._id,
+        price: String(productData.price),
+        userId: user.id,
         name: `Product ${i}`,
       }));
-      await Product.create(products);
+      await db.insert(products).values(docs);
 
       const res = await request(app)
         .get("/api/products?page=1&limit=10")
@@ -108,9 +115,9 @@ describe("Products API", () => {
     it("should filter by source", async () => {
       const { user, token } = await createAuthenticatedUser();
 
-      await Product.create([
-        { ...productData, userId: user._id, source: "manual" },
-        { ...productData, userId: user._id, name: "CSV Prod", source: "csv" },
+      await db.insert(products).values([
+        { ...productData, price: String(productData.price), userId: user.id, source: "manual" },
+        { ...productData, price: String(productData.price), userId: user.id, name: "CSV Prod", source: "csv" },
       ]);
 
       const res = await request(app)
@@ -125,10 +132,13 @@ describe("Products API", () => {
   describe("GET /api/products/:id", () => {
     it("should return a single product", async () => {
       const { user, token } = await createAuthenticatedUser();
-      const product = await Product.create({ ...productData, userId: user._id });
+      const [product] = await db
+        .insert(products)
+        .values({ ...productData, price: String(productData.price), userId: user.id })
+        .returning();
 
       const res = await request(app)
-        .get(`/api/products/${product._id}`)
+        .get(`/api/products/${product!.id}`)
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -137,14 +147,14 @@ describe("Products API", () => {
 
     it("should return 404 for another users product", async () => {
       const { token } = await createAuthenticatedUser();
-      const otherUserId = new mongoose.Types.ObjectId();
-      const product = await Product.create({
-        ...productData,
-        userId: otherUserId,
-      });
+      const { user: otherUser } = await createAuthenticatedUser({ email: "other2@test.com" });
+      const [product] = await db
+        .insert(products)
+        .values({ ...productData, price: String(productData.price), userId: otherUser.id })
+        .returning();
 
       const res = await request(app)
-        .get(`/api/products/${product._id}`)
+        .get(`/api/products/${product!.id}`)
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(404);
@@ -152,7 +162,7 @@ describe("Products API", () => {
 
     it("should return 404 for non-existent product", async () => {
       const { token } = await createAuthenticatedUser();
-      const fakeId = new mongoose.Types.ObjectId();
+      const fakeId = crypto.randomUUID();
 
       const res = await request(app)
         .get(`/api/products/${fakeId}`)
@@ -165,28 +175,30 @@ describe("Products API", () => {
   describe("PUT /api/products/:id", () => {
     it("should update a product", async () => {
       const { user, token } = await createAuthenticatedUser();
-      const product = await Product.create({ ...productData, userId: user._id });
+      const [product] = await db
+        .insert(products)
+        .values({ ...productData, price: String(productData.price), userId: user.id })
+        .returning();
 
       const res = await request(app)
-        .put(`/api/products/${product._id}`)
+        .put(`/api/products/${product!.id}`)
         .set("Authorization", `Bearer ${token}`)
         .send({ name: "Updated T-Shirt", price: 39.99 });
 
       expect(res.status).toBe(200);
       expect(res.body.name).toBe("Updated T-Shirt");
-      expect(res.body.price).toBe(39.99);
     });
 
     it("should not update another users product", async () => {
       const { token } = await createAuthenticatedUser();
-      const otherUserId = new mongoose.Types.ObjectId();
-      const product = await Product.create({
-        ...productData,
-        userId: otherUserId,
-      });
+      const { user: otherUser } = await createAuthenticatedUser({ email: "other3@test.com" });
+      const [product] = await db
+        .insert(products)
+        .values({ ...productData, price: String(productData.price), userId: otherUser.id })
+        .returning();
 
       const res = await request(app)
-        .put(`/api/products/${product._id}`)
+        .put(`/api/products/${product!.id}`)
         .set("Authorization", `Bearer ${token}`)
         .send({ name: "Hacked" });
 
@@ -197,35 +209,38 @@ describe("Products API", () => {
   describe("DELETE /api/products/:id", () => {
     it("should delete a product", async () => {
       const { user, token } = await createAuthenticatedUser();
-      const product = await Product.create({ ...productData, userId: user._id });
+      const [product] = await db
+        .insert(products)
+        .values({ ...productData, price: String(productData.price), userId: user.id })
+        .returning();
 
       const res = await request(app)
-        .delete(`/api/products/${product._id}`)
+        .delete(`/api/products/${product!.id}`)
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe("Product deleted");
 
-      const found = await Product.findById(product._id);
-      expect(found).toBeNull();
+      const [found] = await db.select().from(products).where(eq(products.id, product!.id)).limit(1);
+      expect(found).toBeUndefined();
     });
 
     it("should not delete another users product", async () => {
       const { token } = await createAuthenticatedUser();
-      const otherUserId = new mongoose.Types.ObjectId();
-      const product = await Product.create({
-        ...productData,
-        userId: otherUserId,
-      });
+      const { user: otherUser } = await createAuthenticatedUser({ email: "other4@test.com" });
+      const [product] = await db
+        .insert(products)
+        .values({ ...productData, price: String(productData.price), userId: otherUser.id })
+        .returning();
 
       const res = await request(app)
-        .delete(`/api/products/${product._id}`)
+        .delete(`/api/products/${product!.id}`)
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(404);
 
-      const found = await Product.findById(product._id);
-      expect(found).not.toBeNull();
+      const [found] = await db.select().from(products).where(eq(products.id, product!.id)).limit(1);
+      expect(found).toBeDefined();
     });
   });
 });

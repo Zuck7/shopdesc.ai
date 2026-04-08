@@ -1,10 +1,14 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { eq } from "drizzle-orm";
 import { env } from "../config/env.js";
-import User from "../models/User.js";
+import { db } from "../config/db.js";
+import { users } from "../models/schema.js";
+
+export type UserRow = typeof users.$inferSelect;
 
 export interface AuthRequest extends Request {
-  user?: InstanceType<typeof User>;
+  user?: UserRow;
 }
 
 export const authMiddleware = async (
@@ -22,7 +26,12 @@ export const authMiddleware = async (
     const token = authHeader.split(" ")[1]!;
     const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string };
 
-    const user = await User.findById(decoded.userId).select("-passwordHash");
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, decoded.userId))
+      .limit(1);
+
     if (!user) {
       res.status(401).json({ message: "User not found" });
       return;
