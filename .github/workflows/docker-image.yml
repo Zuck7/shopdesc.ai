@@ -1,0 +1,53 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+
+  docker:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [client, server, agents]  # only after CI passes
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          push: true
+          tags: ghcr.io/${{ github.repository }}/server:latest
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./client
+          push: true
+          tags: ghcr.io/${{ github.repository }}/client:latest
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./agents
+          push: true
+          tags: ghcr.io/${{ github.repository }}/agents:latest
