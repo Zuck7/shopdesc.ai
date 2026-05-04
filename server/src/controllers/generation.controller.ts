@@ -85,7 +85,9 @@ export const generateSingle = async (req: AuthRequest, res: Response) => {
     const result = await callGenerateSingle(payload);
 
     // Cost estimate: ~$0.003 per 1k tokens for gpt-4o-mini, ~$0.01 for gpt-4o
-    const costEstimate = result.total_tokens_used * 0.000005;
+    const costEstimate = Number(
+      (result.total_tokens_used * 0.000005).toFixed(6)
+    );
 
     // Save Generation record
     const [generation] = await db
@@ -112,7 +114,7 @@ export const generateSingle = async (req: AuthRequest, res: Response) => {
           status: "generated" as const,
         })),
         totalTokensUsed: result.total_tokens_used,
-        costEstimate: String(costEstimate),
+        costEstimate,
         processingTimeMs: result.processing_time_ms,
       })
       .returning();
@@ -209,6 +211,14 @@ export const generateBulk = async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    // Queue availability check before writing a queued job to DB
+    if (!generationQueue) {
+      res
+        .status(503)
+        .json({ message: "Bulk generation unavailable — Redis not connected" });
+      return;
+    }
+
     // Verify all products belong to user
     const [countRow] = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -235,12 +245,6 @@ export const generateBulk = async (req: AuthRequest, res: Response) => {
       })
       .returning();
 
-    // Add to BullMQ queue
-    if (!generationQueue) {
-      res.status(503).json({ message: "Bulk generation unavailable — Redis not connected" });
-      return;
-    }
-
     const jobData: BulkJobData = {
       bulkJobId: bulkJob!.id,
       userId,
@@ -251,7 +255,28 @@ export const generateBulk = async (req: AuthRequest, res: Response) => {
       includeCompetitor: include_competitor_analysis,
     };
 
-    await generationQueue.add(`bulk-${bulkJob!.id}`, jobData);
+    try {
+      await generationQueue.add(`bulk-${bulkJob!.id}`, jobData);
+    } catch (queueError) {
+      await db
+        .update(bulkJobs)
+        .set({
+          status: "failed",
+          failedProducts: reqProductIds.length,
+          completedAt: new Date(),
+        })
+        .where(eq(bulkJobs.id, bulkJob!.id));
+
+      logger.error(
+        `Failed to enqueue bulk job ${bulkJob!.id}`,
+        queueError
+      );
+
+      res.status(503).json({
+        message: "Bulk generation unavailable — queue enqueue failed",
+      });
+      return;
+    }
 
     logger.info(
       `Bulk job ${bulkJob!.id} queued: ${reqProductIds.length} products`

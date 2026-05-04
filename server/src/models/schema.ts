@@ -133,7 +133,11 @@ export const generations = pgTable(
     variants: jsonb("variants").notNull().default([]).$type<IVariant[]>(),
 
     totalTokensUsed: integer("total_tokens_used").notNull().default(0),
-    costEstimate: numeric("cost_estimate", { precision: 10, scale: 6 }).notNull().default("0"),
+    costEstimate: numeric("cost_estimate", {
+      precision: 10,
+      scale: 6,
+      mode: "number",
+    }).notNull().default(0),
     processingTimeMs: integer("processing_time_ms").notNull().default(0),
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

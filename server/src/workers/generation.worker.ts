@@ -19,7 +19,14 @@ export interface BulkJobData {
   includeCompetitor: boolean;
 }
 
-async function processBulkGeneration(job: Job<BulkJobData>) {
+interface BulkJobResult {
+  completed: number;
+  failed: number;
+}
+
+async function processBulkGeneration(
+  job: Job<BulkJobData>
+): Promise<BulkJobResult> {
   const {
     bulkJobId,
     userId,
@@ -75,7 +82,9 @@ async function processBulkGeneration(job: Job<BulkJobData>) {
 
       const result = await callGenerateSingle(payload);
 
-      const costEstimate = result.total_tokens_used * 0.000005;
+      const costEstimate = Number(
+        (result.total_tokens_used * 0.000005).toFixed(6)
+      );
 
       await db.insert(generations).values({
         userId,
@@ -107,7 +116,7 @@ async function processBulkGeneration(job: Job<BulkJobData>) {
           status: "generated" as const,
         })),
         totalTokensUsed: result.total_tokens_used,
-        costEstimate: String(costEstimate),
+        costEstimate,
         processingTimeMs: result.processing_time_ms,
       });
 

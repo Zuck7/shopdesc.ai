@@ -97,7 +97,7 @@ describe("Generations API", () => {
           tone: "professional",
           variants: [makeVariant("A"), makeVariant("B"), makeVariant("C")],
           totalTokensUsed: 1000,
-          costEstimate: "0.05",
+          costEstimate: 0.05,
           processingTimeMs: 5000,
         })
         .returning();
@@ -254,7 +254,7 @@ describe("User API", () => {
         productId: product!.id,
         platform: "shopify",
         variants: [makeVariant("A")],
-        costEstimate: "0.05",
+        costEstimate: 0.05,
       });
 
       const res = await request(app)

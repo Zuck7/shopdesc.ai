@@ -50,7 +50,7 @@ export function GeneratePage() {
         include_competitor_analysis: includeCompetitor,
       });
       toast.success("Description generated!");
-      navigate(`/results/${result._id}`);
+      navigate(`/results/${result.id}`);
     } catch {
       toast.error("Generation failed — please try again");
     }
@@ -91,7 +91,7 @@ export function GeneratePage() {
                 {productsLoading ? "Loading…" : "Select a product"}
               </option>
               {products.map((p) => (
-                <option key={p._id} value={p._id}>
+                <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
               ))}

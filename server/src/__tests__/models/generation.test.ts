@@ -41,7 +41,7 @@ describe("Generation table", () => {
       },
     ],
     totalTokensUsed: 500,
-    costEstimate: "0.01",
+    costEstimate: 0.01,
     processingTimeMs: 3000,
   });
 

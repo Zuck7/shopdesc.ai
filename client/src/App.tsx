@@ -18,6 +18,8 @@ import { BulkGeneratePage } from "@/pages/generate/BulkGeneratePage";
 import { JobProgressPage } from "@/pages/generate/JobProgressPage";
 import { GenerationDetailPage } from "@/pages/results/GenerationDetailPage";
 import { AnalyticsPage } from "@/pages/analytics/AnalyticsPage";
+import { BrandVoicePage } from "@/pages/settings/BrandVoicePage";
+import { BillingPage } from "@/pages/settings/BillingPage";
 import { LandingPage } from "@/pages/LandingPage";
 
 const queryClient = new QueryClient({
@@ -54,7 +56,12 @@ function App() {
               <Route path="/generate/jobs/:jobId" element={<JobProgressPage />} />
               <Route path="/results/:id" element={<GenerationDetailPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/settings" element={<DashboardPage />} />
+              <Route
+                path="/settings"
+                element={<Navigate to="/settings/brand-voice" replace />}
+              />
+              <Route path="/settings/brand-voice" element={<BrandVoicePage />} />
+              <Route path="/settings/billing" element={<BillingPage />} />
             </Route>
           </Route>
 

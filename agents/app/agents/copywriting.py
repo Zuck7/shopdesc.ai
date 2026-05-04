@@ -4,6 +4,7 @@ Generates 3 content variants with tone control and platform-aware limits.
 """
 
 import logging
+import re
 
 from langchain_core.messages import SystemMessage, HumanMessage
 
@@ -18,6 +19,16 @@ from app.services.scoring import calculate_seo_score, calculate_readability_scor
 from app.services.formatting import apply_platform_format
 
 logger = logging.getLogger(__name__)
+
+
+def _strip_html(text: str) -> str:
+    return re.sub(r"<[^>]+>", " ", text)
+
+
+def _build_scoring_text(description: str, bullet_points: list[str]) -> str:
+    description_text = _strip_html(description).strip()
+    bullets_text = " ".join(bp.strip() for bp in bullet_points if bp and bp.strip())
+    return "\n".join(part for part in [description_text, bullets_text] if part).strip()
 
 
 async def run_copywriting_agent(state: GenerationState) -> GenerationState:
@@ -93,16 +104,20 @@ async def run_copywriting_agent(state: GenerationState) -> GenerationState:
         variant.keywords = vdict.get("keywords", variant.keywords)
         variant.bullet_points = vdict.get("bullet_points", variant.bullet_points)
 
+        scoring_text = _build_scoring_text(variant.description, variant.bullet_points)
+        if not scoring_text:
+            scoring_text = _strip_html(variant.description).strip()
+
         variant.seo_score = calculate_seo_score(
-            text=variant.description,
+            text=scoring_text,
             title=variant.title,
             meta_title=variant.meta_title,
             meta_description=variant.meta_description,
             primary_keyword=seo.primary_keyword.term,
             secondary_keywords=secondary_terms,
         )
-        variant.readability_score = calculate_readability_score(variant.description)
-        variant.word_count = len(variant.description.split())
+        variant.readability_score = calculate_readability_score(scoring_text)
+        variant.word_count = len(scoring_text.split())
 
     state.variants = output.variants
     state.total_tokens_used += tokens

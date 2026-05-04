@@ -55,7 +55,7 @@ export function BulkGeneratePage() {
     if (selected.size === filtered.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(filtered.map((p) => p._id)));
+      setSelected(new Set(filtered.map((p) => p.id)));
     }
   };
 
@@ -73,7 +73,7 @@ export function BulkGeneratePage() {
         include_competitor_analysis: includeCompetitor,
       });
       toast.success(`Bulk job queued — ${selected.size} products`);
-      navigate(`/generate/jobs/${job._id}`);
+      navigate(`/generate/jobs/${job.id}`);
     } catch {
       toast.error("Failed to start bulk generation");
     }
@@ -207,13 +207,13 @@ export function BulkGeneratePage() {
               <div className="max-h-72 overflow-y-auto space-y-1">
                 {filtered.map((p: IProduct) => (
                   <label
-                    key={p._id}
+                    key={p.id}
                     className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent cursor-pointer"
                   >
                     <input
                       type="checkbox"
-                      checked={selected.has(p._id)}
-                      onChange={() => toggle(p._id)}
+                      checked={selected.has(p.id)}
+                      onChange={() => toggle(p.id)}
                       className="rounded border-input"
                     />
                     <span className="truncate">{p.name}</span>

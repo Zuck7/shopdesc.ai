@@ -10,7 +10,7 @@ import { swaggerSpec } from "./config/swagger.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import authRoutes from "./routes/auth.routes.js";
 import productRoutes from "./routes/product.routes.js";
-import generationRoutes from "./routes/generation.routes.js";
+import { generateRouter, generationsRouter } from "./routes/generation.routes.js";
 import billingRoutes from "./routes/billing.routes.js";
 import userRoutes from "./routes/user.routes.js";
 
@@ -53,8 +53,8 @@ app.get("/api/docs.json", (_req, res) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
-app.use("/api/generate", generationRoutes);
-app.use("/api/generations", generationRoutes);
+app.use("/api/generate", generateRouter);
+app.use("/api/generations", generationsRouter);
 app.use("/api/billing", billingRoutes);
 app.use("/api/users", userRoutes);
 

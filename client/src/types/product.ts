@@ -1,5 +1,5 @@
 export interface IProduct {
-  _id: string;
+  id: string;
   userId: string;
   source: "manual" | "csv" | "shopify";
   externalId?: string;

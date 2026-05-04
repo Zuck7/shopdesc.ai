@@ -14,47 +14,49 @@ import {
   exportGenerations,
 } from "../controllers/generation.controller.js";
 
-const router = Router();
+const generateRouter = Router();
+const generationsRouter = Router();
 
 // All generation routes require auth
-router.use(authMiddleware as unknown as RequestHandler);
+generateRouter.use(authMiddleware as unknown as RequestHandler);
+generationsRouter.use(authMiddleware as unknown as RequestHandler);
 
 // POST /api/generate/single/:productId — generate content for a single product
-router.post(
+generateRouter.post(
   "/single/:productId",
   generationRateLimiter as unknown as RequestHandler,
   generateSingle as unknown as RequestHandler
 );
 
 // POST /api/generate/bulk — create bulk generation job
-router.post(
+generateRouter.post(
   "/bulk",
   bulkRateLimiter as unknown as RequestHandler,
   generateBulk as unknown as RequestHandler
 );
 
 // GET /api/generate/jobs — list bulk jobs
-router.get("/jobs", listJobs as unknown as RequestHandler);
+generateRouter.get("/jobs", listJobs as unknown as RequestHandler);
 
 // GET /api/generate/jobs/:jobId — get bulk job status/progress
-router.get("/jobs/:jobId", getJobStatus as unknown as RequestHandler);
-
-// GET /api/generations/:productId — list all generations for a product
-router.get(
-  "/:productId",
-  getGenerations as unknown as RequestHandler
-);
+generateRouter.get("/jobs/:jobId", getJobStatus as unknown as RequestHandler);
 
 // GET /api/generations/detail/:id — get a single generation with full detail
-router.get(
+generationsRouter.get(
   "/detail/:id",
   getGenerationDetail as unknown as RequestHandler
 );
 
+// GET /api/generations/:productId — list all generations for a product
+generationsRouter.get(
+  "/:productId",
+  getGenerations as unknown as RequestHandler
+);
+
 // POST /api/generations/export — export generations as CSV or JSON
-router.post(
+generationsRouter.post(
   "/export",
   exportGenerations as unknown as RequestHandler
 );
 
-export default router;
+export { generateRouter, generationsRouter };

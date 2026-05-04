@@ -1,5 +1,5 @@
 export interface IVariant {
-  _id: string;
+  id: string;
   variantLabel: string;
   title: string;
   description: string;
@@ -14,9 +14,9 @@ export interface IVariant {
 }
 
 export interface IGeneration {
-  _id: string;
+  id: string;
   userId: string;
-  productId: string | { _id: string; name: string; category?: string; brand?: string };
+  productId: string | { id: string; name: string; category?: string; brand?: string };
   jobId?: string;
   platform: "shopify" | "amazon" | "etsy" | "woocommerce" | "generic";
   tone: "professional" | "casual" | "luxury" | "playful" | "custom";
@@ -38,7 +38,7 @@ export interface GenerateSinglePayload {
 }
 
 export interface IBulkJob {
-  _id: string;
+  id: string;
   userId: string;
   status: "queued" | "processing" | "completed" | "failed" | "cancelled";
   platform: "shopify" | "amazon" | "etsy" | "woocommerce" | "generic";
