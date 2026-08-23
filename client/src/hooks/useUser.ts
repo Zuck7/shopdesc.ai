@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 export interface IUser {
-  _id: string;
+  id: string;
   email: string;
   name: string;
   image?: string;
@@ -10,15 +10,20 @@ export interface IUser {
   defaultTone: "professional" | "casual" | "luxury" | "playful" | "custom";
   customToneInstructions?: string;
   plan: "free" | "starter" | "pro" | "enterprise";
-  usageCount: number;
-  usageResetAt: string;
+  monthlyGenerations: number;
+  generationLimit: number;
+  usageResetDate: string;
 }
 
 export interface UpdateUserPayload {
   name?: string;
   brandName?: string;
+}
+
+export interface UpdateBrandVoicePayload {
   defaultTone?: IUser["defaultTone"];
   customToneInstructions?: string;
+  brandName?: string;
 }
 
 export interface AnalyticsData {
@@ -31,23 +36,39 @@ export interface AnalyticsData {
   platformBreakdown: Array<{ platform: string; count: number }>;
 }
 
-const USER_KEY = "user";
+const PROFILE_KEY = "profile";
 const ANALYTICS_KEY = "analytics";
 
-export function useUser() {
+export function useProfile() {
   return useQuery<IUser>({
-    queryKey: [USER_KEY],
-    queryFn: () => api.get("/users/me").then((r) => r.data),
+    queryKey: [PROFILE_KEY],
+    queryFn: () => api.get("/users/profile").then((r) => r.data),
   });
+}
+
+/** @deprecated use useProfile */
+export function useUser() {
+  return useProfile();
 }
 
 export function useUpdateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdateUserPayload) =>
-      api.put<IUser>("/users/me", payload).then((r) => r.data),
+      api.put<IUser>("/users/profile", payload).then((r) => r.data),
     onSuccess: (updated) => {
-      qc.setQueryData([USER_KEY], updated);
+      qc.setQueryData([PROFILE_KEY], updated);
+    },
+  });
+}
+
+export function useUpdateBrandVoice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateBrandVoicePayload) =>
+      api.put<Pick<IUser, "defaultTone" | "customToneInstructions">>("/users/brand-voice", payload).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [PROFILE_KEY] });
     },
   });
 }

@@ -72,7 +72,7 @@ export function GenerationDetailPage() {
           disabled={exportMutation.isPending}
           onClick={() => {
             exportMutation.mutate(
-              { generationIds: [gen._id], format: "csv" },
+              { generationIds: [gen.id], format: "csv" },
               { onError: () => toast.error("Export failed") }
             );
           }}
@@ -85,7 +85,7 @@ export function GenerationDetailPage() {
           disabled={exportMutation.isPending}
           onClick={() => {
             exportMutation.mutate(
-              { generationIds: [gen._id], format: "json" },
+              { generationIds: [gen.id], format: "json" },
               { onError: () => toast.error("Export failed") }
             );
           }}

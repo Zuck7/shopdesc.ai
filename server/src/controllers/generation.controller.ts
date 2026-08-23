@@ -2,7 +2,7 @@ import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { db } from "../config/db.js";
-import { products, generations, bulkJobs, type Platform, type Tone } from "../models/schema.js";
+import { products, generations, bulkJobs, users, type Platform, type Tone } from "../models/schema.js";
 import { logger } from "../utils/logger.js";
 import {
   callGenerateSingle,
@@ -122,6 +122,12 @@ export const generateSingle = async (req: AuthRequest, res: Response) => {
     logger.info(
       `Generation saved: ${generation!.id} for product ${productId} — ${result.total_tokens_used} tokens`
     );
+
+    // Increment monthly usage counter
+    await db
+      .update(users)
+      .set({ monthlyGenerations: sql`${users.monthlyGenerations} + 1` })
+      .where(eq(users.id, userId));
 
     // Cache the generation
     await setCachedGeneration(cacheKey, generation!.id);
