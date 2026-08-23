@@ -1,0 +1,17 @@
+# Prevent local env files from being copied into image
+.env
+.env.*
+!.env.example
+
+# Dependencies/build artifacts
+node_modules
+dist
+playwright-report
+test-results
+
+# VCS/IDE noise
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store

@@ -1,0 +1,17 @@
+# Prevent local env files from being sent in Docker build context
+.env
+.env.*
+!.env.example
+
+# Python cache/build artifacts
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+
+# VCS/IDE noise
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store

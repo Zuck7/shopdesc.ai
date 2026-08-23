@@ -1,0 +1,21 @@
+# Prevent secret/config leakage into Docker image build context
+.env
+.env.*
+!.env.example
+
+# Local deps/build/test artifacts
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist
+coverage
+.nyc_output
+
+# VCS/IDE noise
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
