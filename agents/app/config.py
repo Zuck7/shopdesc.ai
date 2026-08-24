@@ -20,5 +20,8 @@ class Settings(BaseSettings):
     # Agent service API key (for internal auth from Express)
     AGENT_API_KEY: str = ""
 
+    # Comma-separated list of allowed browser origins for the agent service
+    AGENT_CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5000"
+
 
 settings = Settings()

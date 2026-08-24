@@ -5,7 +5,12 @@ import { logger } from "../utils/logger.js";
 const agentApi = axios.create({
   baseURL: env.AGENTS_URL,
   timeout: 120_000, // 2 minutes — generation can take a while
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+    ...(env.AGENT_API_KEY
+      ? { "x-agent-api-key": env.AGENT_API_KEY }
+      : {}),
+  },
 });
 
 export interface AgentProductInput {

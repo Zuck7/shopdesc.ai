@@ -6,6 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routers import health, generate
 
+
+def _parse_origins(value: str) -> list[str]:
+    return [origin.strip() for origin in value.split(",") if origin.strip()]
+
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
     format="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
@@ -19,7 +23,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5000"],
+    allow_origins=_parse_origins(settings.AGENT_CORS_ORIGINS),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

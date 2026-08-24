@@ -118,7 +118,7 @@ export function ProductTable({ onSelect }: ProductTableProps) {
                   )}
                   {data.products.map((product) => (
                     <tr
-                      key={product._id}
+                      key={product.id}
                       className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                     >
                       <td className="px-4 py-2">
@@ -131,7 +131,7 @@ export function ProductTable({ onSelect }: ProductTableProps) {
                           </button>
                         ) : (
                           <Link
-                            to={`/products/${product._id}`}
+                            to={`/products/${product.id}`}
                             className="text-primary underline-offset-4 hover:underline"
                           >
                             {product.name}
@@ -156,7 +156,7 @@ export function ProductTable({ onSelect }: ProductTableProps) {
                       </td>
                       <td className="px-4 py-2 text-right">
                         <div className="flex justify-end gap-1">
-                          <Link to={`/products/${product._id}`}>
+                          <Link to={`/products/${product.id}`}>
                             <Button variant="ghost" size="icon-sm">
                               <span className="sr-only">View</span>
                               <svg
@@ -178,7 +178,7 @@ export function ProductTable({ onSelect }: ProductTableProps) {
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            onClick={() => handleDelete(product._id)}
+                            onClick={() => handleDelete(product.id)}
                             disabled={deleteProduct.isPending}
                           >
                             <span className="sr-only">Delete</span>

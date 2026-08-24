@@ -17,6 +17,7 @@ const envSchema = z.object({
   // URLs
   CLIENT_URL: z.string().default("http://localhost:5173"),
   AGENTS_URL: z.string().default("http://localhost:8000"),
+  AGENT_API_KEY: z.string().optional(),
 
   // Google OAuth (optional)
   GOOGLE_CLIENT_ID: z.string().optional(),

@@ -1,0 +1,29 @@
+name: Deploy via Hooks
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Trigger Deploy Hooks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger server deploy hook
+        if: ${{ secrets.DEPLOY_HOOK_SERVER != '' }}
+        run: curl -fsSL -X POST "${{ secrets.DEPLOY_HOOK_SERVER }}"
+
+      - name: Trigger agents deploy hook
+        if: ${{ secrets.DEPLOY_HOOK_AGENTS != '' }}
+        run: curl -fsSL -X POST "${{ secrets.DEPLOY_HOOK_AGENTS }}"
+
+      - name: Trigger client deploy hook
+        if: ${{ secrets.DEPLOY_HOOK_CLIENT != '' }}
+        run: curl -fsSL -X POST "${{ secrets.DEPLOY_HOOK_CLIENT }}"
+
+      - name: Print setup reminder when hooks are missing
+        if: ${{ secrets.DEPLOY_HOOK_SERVER == '' && secrets.DEPLOY_HOOK_AGENTS == '' && secrets.DEPLOY_HOOK_CLIENT == '' }}
+        run: |
+          echo "No deploy hooks are configured."
+          echo "Set one or more repo secrets: DEPLOY_HOOK_SERVER, DEPLOY_HOOK_AGENTS, DEPLOY_HOOK_CLIENT"

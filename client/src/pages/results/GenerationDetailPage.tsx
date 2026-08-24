@@ -149,16 +149,16 @@ export function GenerationDetailPage() {
 
       {/* Variant Tabs */}
       {gen.variants.length > 0 && (
-        <Tabs defaultValue={gen.variants[0]._id}>
+        <Tabs defaultValue={`${gen.variants[0]!.variantLabel}-0`}>
           <TabsList>
-            {gen.variants.map((v) => (
-              <TabsTrigger key={v._id} value={v._id}>
+            {gen.variants.map((v, index) => (
+              <TabsTrigger key={`${v.variantLabel}-${index}`} value={`${v.variantLabel}-${index}`}>
                 {v.variantLabel}
               </TabsTrigger>
             ))}
           </TabsList>
-          {gen.variants.map((v) => (
-            <TabsContent key={v._id} value={v._id}>
+          {gen.variants.map((v, index) => (
+            <TabsContent key={`${v.variantLabel}-${index}`} value={`${v.variantLabel}-${index}`}>
               <VariantCard variant={v} />
             </TabsContent>
           ))}

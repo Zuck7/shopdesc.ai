@@ -11,8 +11,9 @@ export interface Plan {
 
 export interface BillingStatus {
   plan: Plan["name"];
-  usageCount: number;
-  usageResetAt: string;
+  monthlyGenerations: number;
+  generationLimit: number;
+  usageResetDate: string;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
   subscriptionStatus?: "active" | "past_due" | "canceled" | "trialing";
@@ -32,8 +33,12 @@ export function usePlans() {
 export function useBillingStatus() {
   return useQuery<BillingStatus>({
     queryKey: [BILLING_KEY],
-    queryFn: () => api.get("/billing/status").then((r) => r.data),
+    queryFn: () => api.get("/billing/usage").then((r) => r.data),
   });
+}
+
+export function useUsage() {
+  return useBillingStatus();
 }
 
 export function useSubscribe() {
@@ -56,4 +61,8 @@ export function useManageBilling() {
       window.location.href = url;
     },
   });
+}
+
+export function usePortalSession() {
+  return useManageBilling();
 }

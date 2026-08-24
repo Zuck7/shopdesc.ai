@@ -12,7 +12,7 @@ export function NewProductPage() {
     try {
       const product = await createProduct.mutateAsync(payload);
       toast.success("Product created");
-      navigate(`/products/${product._id}`);
+      navigate(`/products/${product.id}`);
     } catch {
       toast.error("Failed to create product");
     }

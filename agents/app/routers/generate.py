@@ -1,13 +1,14 @@
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.models.schemas import SingleGenerateRequest, GenerationOutput
 from app.orchestrator import generate_single
+from app.routers.deps import verify_agent_api_key
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_agent_api_key)])
 
 
 @router.post("/single", response_model=GenerationOutput)

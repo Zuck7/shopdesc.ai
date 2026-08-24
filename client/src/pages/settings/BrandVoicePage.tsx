@@ -12,17 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useProfile, useUpdateBrandVoice } from "@/hooks/useUser";
+import { useProfile, useUpdateBrandVoice, type IUser } from "@/hooks/useUser";
 
-const TONE_PRESETS = [
+const TONE_PRESETS: IUser["defaultTone"][] = [
   "professional",
   "casual",
-  "luxurious",
+  "luxury",
   "playful",
-  "technical",
-  "friendly",
-  "minimalist",
-  "bold",
+  "custom",
 ];
 
 export function BrandVoicePage() {
@@ -30,7 +27,7 @@ export function BrandVoicePage() {
   const updateBrandVoice = useUpdateBrandVoice();
 
   const [brandName, setBrandName] = useState("");
-  const [tone, setTone] = useState("professional");
+  const [tone, setTone] = useState<IUser["defaultTone"]>("professional");
   const [customInstructions, setCustomInstructions] = useState("");
 
   useEffect(() => {
