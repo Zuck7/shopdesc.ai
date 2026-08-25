@@ -25,12 +25,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Image tags must be all-lowercase, but github.repository preserves the
+      # owner's actual case (Zuck7/shopdesc.ai) — compute a lowercase copy once
+      # and reuse it below.
+      - name: Compute lowercase image repository
+        run: echo "IMAGE_REPO=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
       - uses: docker/build-push-action@v5
         with:
           context: ./${{ matrix.service }}
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest
+            ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.service }}:${{ github.sha }}
+            ghcr.io/${{ env.IMAGE_REPO }}/${{ matrix.service }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

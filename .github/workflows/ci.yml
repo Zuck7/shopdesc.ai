@@ -130,11 +130,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Image tags must be all-lowercase, but github.repository preserves the
+      # owner's actual case (Zuck7/shopdesc.ai) — compute a lowercase copy once
+      # and reuse it below instead of repeating this in every tag.
+      - name: Compute lowercase image repository
+        run: echo "IMAGE_REPO=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
       - uses: docker/build-push-action@v5
         with:
           context: ./client
           push: true
-          tags: ghcr.io/${{ github.repository }}/client:${{ github.sha }},ghcr.io/${{ github.repository }}/client:latest
+          tags: ghcr.io/${{ env.IMAGE_REPO }}/client:${{ github.sha }},ghcr.io/${{ env.IMAGE_REPO }}/client:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -142,7 +148,7 @@ jobs:
         with:
           context: ./server
           push: true
-          tags: ghcr.io/${{ github.repository }}/server:${{ github.sha }},ghcr.io/${{ github.repository }}/server:latest
+          tags: ghcr.io/${{ env.IMAGE_REPO }}/server:${{ github.sha }},ghcr.io/${{ env.IMAGE_REPO }}/server:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -150,6 +156,6 @@ jobs:
         with:
           context: ./agents
           push: true
-          tags: ghcr.io/${{ github.repository }}/agents:${{ github.sha }},ghcr.io/${{ github.repository }}/agents:latest
+          tags: ghcr.io/${{ env.IMAGE_REPO }}/agents:${{ github.sha }},ghcr.io/${{ env.IMAGE_REPO }}/agents:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
