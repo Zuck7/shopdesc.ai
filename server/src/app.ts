@@ -26,6 +26,9 @@ app.use(
 );
 
 // Body parsing
+// Stripe signature verification needs the unparsed body, so the webhook route
+// claims it before express.json() can consume it.
+app.use("/api/billing/webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

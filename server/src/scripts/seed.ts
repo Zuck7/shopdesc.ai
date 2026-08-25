@@ -1,20 +1,13 @@
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { connectDB, db, getPool } from "../config/db.js";
+import { runMigrations } from "./migrate.js";
 import { users, products as productsTable } from "../models/schema.js";
 
-const categories = [
-  "Electronics",
-  "Clothing",
-  "Home & Garden",
-  "Sports",
-  "Beauty",
-  "Toys",
-  "Kitchen",
-  "Office",
-  "Automotive",
-  "Health",
-];
+// Credentials for the public demo account. Override in production deploys.
+const DEMO_EMAIL = process.env.DEMO_EMAIL ?? "demo@shopdesc.ai";
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "demo1234";
 
 const products = [
   { name: "Wireless Noise-Cancelling Headphones", category: "Electronics", features: ["Active noise cancellation", "40-hour battery life", "Bluetooth 5.3"], benefits: ["Immersive audio experience", "All-day listening"], price: 149.99, tags: ["audio", "wireless", "premium"] },
@@ -73,22 +66,38 @@ async function seed() {
   await connectDB();
   console.log("Connected to PostgreSQL");
 
-  // Create a seed user
+  await runMigrations();
+
+  // Create (or refresh) the demo account. It needs a real bcrypt hash so that
+  // anyone visiting the deployed app can actually sign in and look around.
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+
   let [user] = await db
     .select()
     .from(users)
-    .where(eq(users.email, "seed@shopdesc.ai"))
+    .where(eq(users.email, DEMO_EMAIL))
     .limit(1);
+
   if (!user) {
     [user] = await db
       .insert(users)
       .values({
-        name: "Seed User",
-        email: "seed@shopdesc.ai",
-        passwordHash: "not-a-real-hash",
+        name: "Demo User",
+        email: DEMO_EMAIL,
+        passwordHash,
+        plan: "pro",
+        generationLimit: 25,
       })
       .returning();
-    console.log("Created seed user");
+    console.log(`Created demo user ${DEMO_EMAIL}`);
+  } else {
+    // Keep the password in sync with DEMO_PASSWORD on every re-seed.
+    [user] = await db
+      .update(users)
+      .set({ passwordHash, plan: "pro", generationLimit: 25 })
+      .where(eq(users.id, user.id))
+      .returning();
+    console.log(`Refreshed demo user ${DEMO_EMAIL}`);
   }
 
   if (!user) {
@@ -113,6 +122,7 @@ async function seed() {
 
   await db.insert(productsTable).values(docs);
   console.log(`Inserted ${docs.length} sample products`);
+  console.log(`Demo login: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 
   await getPool().end();
   console.log("Done");

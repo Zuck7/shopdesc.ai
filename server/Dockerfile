@@ -12,5 +12,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
-EXPOSE 5000
+# SQL migrations are read at startup by dist/scripts/migrate.js
+COPY --from=build /app/drizzle ./drizzle
+EXPOSE 5001
 CMD ["node", "dist/index.js"]

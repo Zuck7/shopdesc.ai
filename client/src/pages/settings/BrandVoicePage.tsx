@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   Card,
@@ -24,19 +24,30 @@ const TONE_PRESETS: IUser["defaultTone"][] = [
 
 export function BrandVoicePage() {
   const { data: profile, isLoading } = useProfile();
+
+  if (isLoading || !profile) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  // Keyed on the profile id so a different profile remounts with fresh state.
+  return <BrandVoiceForm key={profile.id} profile={profile} />;
+}
+
+function BrandVoiceForm({ profile }: { profile: IUser }) {
   const updateBrandVoice = useUpdateBrandVoice();
 
-  const [brandName, setBrandName] = useState("");
-  const [tone, setTone] = useState<IUser["defaultTone"]>("professional");
-  const [customInstructions, setCustomInstructions] = useState("");
-
-  useEffect(() => {
-    if (profile) {
-      setBrandName(profile.brandName ?? "");
-      setTone(profile.defaultTone ?? "professional");
-      setCustomInstructions(profile.customToneInstructions ?? "");
-    }
-  }, [profile]);
+  const [brandName, setBrandName] = useState(profile.brandName ?? "");
+  const [tone, setTone] = useState<IUser["defaultTone"]>(
+    profile.defaultTone ?? "professional"
+  );
+  const [customInstructions, setCustomInstructions] = useState(
+    profile.customToneInstructions ?? ""
+  );
 
   const handleSave = () => {
     updateBrandVoice.mutate(
@@ -51,15 +62,6 @@ export function BrandVoicePage() {
       }
     );
   };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

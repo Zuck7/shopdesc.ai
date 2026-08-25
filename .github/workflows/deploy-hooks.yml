@@ -2,28 +2,47 @@ name: Deploy via Hooks
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:
   deploy:
     name: Trigger Deploy Hooks
     runs-on: ubuntu-latest
+    # The `secrets` context is not available in step-level `if:` conditions, so
+    # each hook is checked inside its `run:` block instead.
+    env:
+      DEPLOY_HOOK_SERVER: ${{ secrets.DEPLOY_HOOK_SERVER }}
+      DEPLOY_HOOK_AGENTS: ${{ secrets.DEPLOY_HOOK_AGENTS }}
+      DEPLOY_HOOK_CLIENT: ${{ secrets.DEPLOY_HOOK_CLIENT }}
     steps:
       - name: Trigger server deploy hook
-        if: ${{ secrets.DEPLOY_HOOK_SERVER != '' }}
-        run: curl -fsSL -X POST "${{ secrets.DEPLOY_HOOK_SERVER }}"
+        run: |
+          if [ -n "$DEPLOY_HOOK_SERVER" ]; then
+            curl -fsSL -X POST "$DEPLOY_HOOK_SERVER"
+          else
+            echo "DEPLOY_HOOK_SERVER not set — skipping."
+          fi
 
       - name: Trigger agents deploy hook
-        if: ${{ secrets.DEPLOY_HOOK_AGENTS != '' }}
-        run: curl -fsSL -X POST "${{ secrets.DEPLOY_HOOK_AGENTS }}"
+        run: |
+          if [ -n "$DEPLOY_HOOK_AGENTS" ]; then
+            curl -fsSL -X POST "$DEPLOY_HOOK_AGENTS"
+          else
+            echo "DEPLOY_HOOK_AGENTS not set — skipping."
+          fi
 
       - name: Trigger client deploy hook
-        if: ${{ secrets.DEPLOY_HOOK_CLIENT != '' }}
-        run: curl -fsSL -X POST "${{ secrets.DEPLOY_HOOK_CLIENT }}"
-
-      - name: Print setup reminder when hooks are missing
-        if: ${{ secrets.DEPLOY_HOOK_SERVER == '' && secrets.DEPLOY_HOOK_AGENTS == '' && secrets.DEPLOY_HOOK_CLIENT == '' }}
         run: |
-          echo "No deploy hooks are configured."
-          echo "Set one or more repo secrets: DEPLOY_HOOK_SERVER, DEPLOY_HOOK_AGENTS, DEPLOY_HOOK_CLIENT"
+          if [ -n "$DEPLOY_HOOK_CLIENT" ]; then
+            curl -fsSL -X POST "$DEPLOY_HOOK_CLIENT"
+          else
+            echo "DEPLOY_HOOK_CLIENT not set — skipping."
+          fi
+
+      - name: Setup reminder
+        run: |
+          if [ -z "$DEPLOY_HOOK_SERVER" ] && [ -z "$DEPLOY_HOOK_AGENTS" ] && [ -z "$DEPLOY_HOOK_CLIENT" ]; then
+            echo "No deploy hooks are configured."
+            echo "Set one or more repo secrets: DEPLOY_HOOK_SERVER, DEPLOY_HOOK_AGENTS, DEPLOY_HOOK_CLIENT"
+          fi

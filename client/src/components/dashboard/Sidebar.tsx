@@ -4,7 +4,7 @@ import {
   Package,
   Sparkles,
   Layers,
-  FileText,
+  BarChart3,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -18,7 +18,7 @@ const navItems = [
   { label: "Products", href: "/products", icon: Package },
   { label: "Generate", href: "/generate", icon: Sparkles },
   { label: "Bulk Generate", href: "/generate/bulk", icon: Layers },
-  { label: "Results", href: "/results", icon: FileText },
+  { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -44,7 +44,9 @@ export function Sidebar() {
 
       <nav className="flex-1 space-y-1 p-3">
         {navItems.map((item) => {
-          const active = location.pathname.startsWith(item.href);
+          const active =
+            location.pathname === item.href ||
+            location.pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}

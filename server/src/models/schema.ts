@@ -14,12 +14,12 @@ import {
 
 // ─── Enums as pgEnum ────────────────────────────────────────────────────────
 
-const toneEnum = ["professional", "casual", "luxury", "playful", "custom"] as const;
-const planEnum = ["free", "starter", "pro", "enterprise"] as const;
-const platformEnum = ["shopify", "amazon", "etsy", "woocommerce", "generic"] as const;
-const sourceEnum = ["manual", "csv", "shopify"] as const;
-const variantStatusEnum = ["generated", "approved", "rejected", "edited"] as const;
-const bulkJobStatusEnum = ["queued", "processing", "completed", "failed", "cancelled"] as const;
+export const toneEnum = ["professional", "casual", "luxury", "playful", "custom"] as const;
+export const planEnum = ["free", "starter", "pro", "enterprise"] as const;
+export const platformEnum = ["shopify", "amazon", "etsy", "woocommerce", "generic"] as const;
+export const sourceEnum = ["manual", "csv", "shopify"] as const;
+export const variantStatusEnum = ["generated", "approved", "rejected", "edited"] as const;
+export const bulkJobStatusEnum = ["queued", "processing", "completed", "failed", "cancelled"] as const;
 
 export type Tone = (typeof toneEnum)[number];
 export type Plan = (typeof planEnum)[number];

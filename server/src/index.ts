@@ -2,6 +2,7 @@ import "dotenv/config";
 import * as Sentry from "@sentry/node";
 import { env } from "./config/env.js";
 import { connectDB } from "./config/db.js";
+import { runMigrations } from "./scripts/migrate.js";
 import { app } from "./app.js";
 import { logger } from "./utils/logger.js";
 import { startGenerationWorker } from "./workers/generation.worker.js";
@@ -18,6 +19,9 @@ if (env.SENTRY_DSN) {
 
 const start = async () => {
   await connectDB();
+
+  // Apply any pending schema migrations before serving traffic
+  await runMigrations();
 
   // Start BullMQ worker for bulk generation
   startGenerationWorker();

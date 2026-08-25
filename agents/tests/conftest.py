@@ -1,4 +1,6 @@
 import pytest
+
+from app.config import settings
 from app.models.schemas import (
     ProductInput,
     ProductBrief,
@@ -8,6 +10,20 @@ from app.models.schemas import (
     CompetitorAnalysis,
     CompetitorListing,
 )
+
+
+@pytest.fixture(autouse=True)
+def dummy_llm_credentials():
+    """Give get_llm() a key to find.
+
+    The agent tests patch invoke_structured, but the agents still call get_llm()
+    first, which raises RuntimeError when no key is configured. A dummy key is
+    enough: ChatOpenAI does no network I/O at construction time.
+    """
+    original = settings.OPENAI_API_KEY
+    settings.OPENAI_API_KEY = "test-openai-key"
+    yield
+    settings.OPENAI_API_KEY = original
 
 
 @pytest.fixture

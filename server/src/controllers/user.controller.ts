@@ -1,6 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../middleware/auth.js";
-import { eq, sql, desc, gte } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { db } from "../config/db.js";
 import { users, products, generations } from "../models/schema.js";
 import { logger } from "../utils/logger.js";

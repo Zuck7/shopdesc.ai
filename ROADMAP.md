@@ -1,5 +1,10 @@
 # Build Roadmap (6 Weeks)
 
+> **Status:** Phases 1–5 are implemented in the codebase (the per-item checkboxes
+> below were not kept up to date during the build). Phase 6 is in progress:
+> tests, Dockerfiles, CI, API docs, and migrations are done; the hosted deploy,
+> custom domain, and demo video are the remaining work.
+
 ## Phase 1: Foundation (Week 1) — March 10–16
 **Goal: Monorepo scaffold, auth system, database, Docker running**
 - [x] Initialize client: `npm create vite@latest client -- --template react-ts`

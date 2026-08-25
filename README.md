@@ -10,6 +10,23 @@ E-commerce sellers with hundreds or thousands of products need unique, SEO-optim
 
 Upload product data (CSV, Shopify sync, or manual entry) → 4 specialized AI agents collaborate to generate SEO-optimized, conversion-focused product content → Output is formatted for your specific platform (Shopify, Amazon, Etsy, WooCommerce).
 
+## Live Demo
+
+- **App:** _add your deployed client URL here_
+- **API docs:** _add your deployed server URL_ + `/api/docs`
+- **Demo login:** `demo@shopdesc.ai` / `demo1234` (seeded by `npm run seed`)
+
+## Running Locally
+
+```bash
+cp .env.example .env          # fill in OPENAI_API_KEY at minimum
+docker compose up             # postgres, redis, server, client, agents
+cd server && npm run seed     # demo account + 50 sample products
+```
+
+The server applies database migrations automatically on startup.
+Client runs on :5173, server on :5001, agents on :8000.
+
 ## Tech Stack
 
 | Layer | Stack |

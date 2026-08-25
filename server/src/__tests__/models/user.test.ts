@@ -1,6 +1,5 @@
 import { db } from "../../config/db.js";
 import { users } from "../../models/schema.js";
-import { eq } from "drizzle-orm";
 import { connectTestDB, disconnectTestDB, clearTestDB } from "../setup.js";
 
 beforeAll(async () => await connectTestDB());

@@ -19,5 +19,17 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Error objects from axios are inspected loosely in a few catch blocks.
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
+  {
+    // shadcn primitives intentionally export their cva variant maps alongside
+    // the component; that is the upstream file layout, not a mistake.
+    files: ['src/components/ui/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])

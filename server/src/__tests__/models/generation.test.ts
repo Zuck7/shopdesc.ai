@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { db } from "../../config/db.js";
 import { users, products, generations } from "../../models/schema.js";
 import { connectTestDB, disconnectTestDB, clearTestDB } from "../setup.js";
