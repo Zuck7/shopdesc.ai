@@ -178,7 +178,6 @@ class HealthResponse(BaseModel):
         "competitor",
     ]
     version: str
-    word_count: int
 
 
 class BulkGenerateRequest(BaseModel):
