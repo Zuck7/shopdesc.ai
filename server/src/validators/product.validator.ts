@@ -38,7 +38,7 @@ export const updateProductSchema = z.object({
 export const listProductsSchema = z.object({
   query: z.object({
     page: z.coerce.number().int().positive().default(1),
-    limit: z.coerce.number().int().min(1).max(100).default(20),
+    limit: z.coerce.number().int().min(1).max(500).default(20),
     search: z.string().optional(),
     source: z.enum(["manual", "csv", "shopify"]).optional(),
     category: z.string().optional(),

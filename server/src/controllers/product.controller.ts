@@ -7,6 +7,12 @@ import { logger } from "../utils/logger.js";
 import { parseCsv, type CsvProduct } from "../services/csv.service.js";
 import { fetchAllProducts, mapShopifyProduct } from "../services/shopify.service.js";
 
+// Drizzle's `numeric` column type comes back from the pg driver as a string;
+// the API contract (and client types) expect price as a number.
+function serializeProduct<T extends { price: string | null }>(row: T) {
+  return { ...row, price: row.price !== null ? Number(row.price) : null };
+}
+
 // GET /api/products
 export const listProducts = async (req: AuthRequest, res: Response) => {
   try {
@@ -44,7 +50,7 @@ export const listProducts = async (req: AuthRequest, res: Response) => {
     const total = countRow?.total ?? 0;
 
     res.json({
-      products: rows,
+      products: rows.map(serializeProduct),
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -66,7 +72,7 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
       .insert(products)
       .values({ ...req.body, userId, source: "manual" })
       .returning();
-    res.status(201).json(product);
+    res.status(201).json(serializeProduct(product!));
   } catch (error) {
     logger.error("createProduct error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -86,7 +92,7 @@ export const getProduct = async (req: AuthRequest, res: Response) => {
       res.status(404).json({ message: "Product not found" });
       return;
     }
-    res.json(product);
+    res.json(serializeProduct(product));
   } catch (error) {
     logger.error("getProduct error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -106,7 +112,7 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
       res.status(404).json({ message: "Product not found" });
       return;
     }
-    res.json(product);
+    res.json(serializeProduct(product));
   } catch (error) {
     logger.error("updateProduct error:", error);
     res.status(500).json({ message: "Internal server error" });
