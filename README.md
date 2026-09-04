@@ -18,17 +18,17 @@ Upload product data (CSV, Shopify sync, or manual entry) → 4 specialized AI ag
 
 ## Screenshots
 
-| Product catalog | Generate description |
+| Dashboard | Product catalog |
 |---|---|
-| ![Products list](docs/screenshots/products.png) | ![Generate form](docs/screenshots/generate.png) |
+| ![Dashboard](docs/dashboard.png) | ![Products list](docs/products.png) |
 
-| Generation results | Analytics |
+| Generate description | Bulk generate |
 |---|---|
-| ![Generation results with SEO score and variants](docs/screenshots/results.png) | ![Analytics dashboard](docs/screenshots/analytics.png) |
+| ![Generate form](docs/generate.png) | ![Bulk generate](docs/bulk_generate.png) |
 
-| Brand voice settings |
+| Analytics |
 |---|
-| ![Brand voice settings](docs/screenshots/brand-voice.png) |
+| ![Analytics dashboard](docs/analytics.png) |
 
 ## Running Locally
 
