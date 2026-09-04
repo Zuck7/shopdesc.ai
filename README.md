@@ -16,6 +16,20 @@ Upload product data (CSV, Shopify sync, or manual entry) → 4 specialized AI ag
 - **API docs:** _add your deployed server URL_ + `/api/docs`
 - **Demo login:** `demo@shopdesc.ai` / `demo1234` (seeded by `npm run seed`)
 
+## Screenshots
+
+| Product catalog | Generate description |
+|---|---|
+| ![Products list](docs/screenshots/products.png) | ![Generate form](docs/screenshots/generate.png) |
+
+| Generation results | Analytics |
+|---|---|
+| ![Generation results with SEO score and variants](docs/screenshots/results.png) | ![Analytics dashboard](docs/screenshots/analytics.png) |
+
+| Brand voice settings |
+|---|
+| ![Brand voice settings](docs/screenshots/brand-voice.png) |
+
 ## Running Locally
 
 ```bash
